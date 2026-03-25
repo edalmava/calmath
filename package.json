@@ -1,0 +1,23 @@
+{
+  "name": "calmath",
+  "version": "1.0.0",
+  "description": "EvalMath — Gestor de Evaluaciones ICFES",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "eslint-plugin-html": "^8.1.1",
+    "jsdom": "^24.0.0",
+    "vite": "^5.2.0",
+    "vitest": "^1.4.0"
+  }
+}

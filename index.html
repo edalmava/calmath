@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EvalMath — Gestor ICFES</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+
+<header>
+  <div class="logo">EvalMath</div>
+  <div class="header-sub">Gestor de Evaluaciones ICFES - Matematicas</div>
+  <div class="header-actions">
+    <button class="btn-ghost active-nav" id="navNueva" onclick="showView('app')">+ Nueva</button>
+    <button class="btn-ghost" id="navHist" onclick="showView('historial')">Historial</button>
+    <div class="step-indicator" id="stepIndicator">
+      <div class="step-dot active" id="dot1"></div>
+      <div class="step-dot" id="dot2"></div>
+      <div class="step-dot" id="dot3"></div>
+      <div class="step-dot" id="dot4"></div>
+    </div>
+  </div>
+</header>
+
+<!-- Historial -->
+<div id="viewHistorial" class="hidden">
+  <main>
+    <div class="card">
+      <div class="card-title">Historial de evaluaciones</div>
+      <div class="card-desc">Evaluaciones guardadas localmente en este dispositivo mediante IndexedDB.</div>
+      <div id="histList"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Resumen -->
+<div id="viewResumen" class="hidden">
+  <main>
+    <button class="rsm-back" onclick="showView('historial')">Volver al historial</button>
+    <div class="card">
+      <div id="rsmHeader"></div>
+      <div class="rsm-chips" id="rsmChips"></div>
+      <hr class="divider" style="margin-top:20px;">
+      <table class="rsm-table">
+        <thead>
+          <tr>
+            <th>#</th><th>Estudiante</th><th>Aciertos</th><th>Errores</th><th>Nota</th><th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="rsmBody"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- APP -->
+<div id="viewApp">
+<main>
+
+  <!-- Paso 1 -->
+  <div class="card" id="step1">
+    <div class="card-title">Paso 1 - Configurar evaluacion</div>
+    <div class="card-desc">Completa los datos de la prueba antes de definir preguntas y estudiantes.</div>
+
+    <div class="form-row-3">
+      <div class="form-field">
+        <label>Nombre de la prueba</label>
+        <input type="text" id="nombrePrueba" placeholder="Ej: Parcial de Algebra" />
+      </div>
+      <div class="form-field">
+        <label>Fecha de la prueba</label>
+        <input type="date" id="fechaPrueba" />
+      </div>
+      <div class="form-field">
+        <label>Periodo academico</label>
+        <select id="periodoSel">
+          <option value="">- Seleccionar -</option>
+          <option value="1">Periodo 1</option>
+          <option value="2">Periodo 2</option>
+          <option value="3">Periodo 3</option>
+          <option value="4">Periodo 4</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-field">
+        <label>Numero de preguntas</label>
+        <input type="number" id="numPreguntas" min="1" max="100" placeholder="Ej: 20" />
+      </div>
+      <div class="form-field">
+        <label>Numero de estudiantes</label>
+        <input type="number" id="numEstudiantes" min="1" max="200" placeholder="Ej: 30" />
+      </div>
+    </div>
+
+    <div style="margin-bottom:18px;">
+      <label>Peso de las preguntas</label>
+      <div class="peso-mode-toggle">
+        <button class="peso-mode-btn pm-active" id="btnPesoIgual" onclick="setPesoMode('igual')">Igual peso</button>
+        <button class="peso-mode-btn" id="btnPesoDif" onclick="setPesoMode('diferente')">Peso diferente</button>
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:7px;" id="pesoModeDesc">
+        Todas las preguntas valen lo mismo.
+      </div>
+    </div>
+
+    <div style="margin-bottom:18px;">
+      <label>Sistema de calificacion</label>
+      <div class="peso-mode-toggle">
+        <button class="peso-mode-btn pm-active" id="btnCalif1a5" onclick="setSistemaCalif('1a5')">1 a 5</button>
+        <button class="peso-mode-btn" id="btnCalif0a5" onclick="setSistemaCalif('0a5')">0 a 5</button>
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:7px;" id="califDesc">
+        La nota minima es 1.0 y la maxima es 5.0.
+      </div>
+    </div>
+
+    <div id="infoCalculo" class="info-row hidden">
+      Valor por pregunta: <span id="valorPregunta">-</span>
+      Nota min.: <span id="notaMinLabel">1.0</span> | Nota max.: <span>5.0</span>
+    </div>
+    <button class="btn btn-primary" onclick="irPaso2()">Continuar</button>
+  </div>
+
+  <!-- Paso 2 -->
+  <div class="card hidden" id="step2">
+    <div class="card-title">Paso 2 - Clave de respuestas</div>
+    <div class="card-desc">Selecciona la respuesta correcta para cada pregunta.</div>
+    <div id="metaBanner2" class="meta-banner"></div>
+    <div class="answer-grid" id="claveGrid"></div>
+    <div class="actions-row">
+      <button class="btn btn-primary" onclick="irPaso3()">Continuar</button>
+      <button class="btn-ghost" onclick="setStep(1)" style="padding:11px 20px;">Volver</button>
+    </div>
+  </div>
+
+  <!-- Paso 3 -->
+  <div class="card hidden" id="step3">
+    <div class="card-title">Paso 3 - Respuestas de estudiantes</div>
+    <div class="card-desc">Selecciona el estudiante y marca las opciones que eligio.</div>
+    <div id="metaBanner3" class="meta-banner"></div>
+    <div id="draftProgressBar"></div>
+    <div class="student-nav" id="studentNav"></div>
+    <div id="studentPanel"></div>
+  </div>
+
+  <!-- Paso 4 -->
+  <div class="card hidden" id="step4">
+    <div class="card-title">Paso 4 - Resumen general</div>
+    <div class="card-desc">Resultados de todos los estudiantes.</div>
+    <div id="metaBanner4" class="meta-banner"></div>
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>#</th><th>Estudiante</th><th>Aciertos</th><th>Errores</th><th>Nota</th><th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="summaryBody"></tbody>
+    </table>
+    <div id="statsBlock" style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;"></div>
+    <div class="actions-row">
+      <button class="btn btn-primary" onclick="guardarEvaluacion()" id="btnGuardar">Guardar evaluacion</button>
+      <button class="btn btn-secondary" onclick="reiniciar()">Nueva evaluacion</button>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- Modal detalle estudiante -->
+<div class="modal-det-bg hidden" id="modalDet" onclick="cerrarModalDet(event)">
+  <div class="modal-det" id="modalDetInner">
+    <div class="modal-det-header">
+      <div class="modal-det-header-info">
+        <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;margin-bottom:6px;" id="detEvalNombre"></div>
+        <div class="modal-det-name" id="detNombre"></div>
+        <div class="modal-det-meta" id="detMeta"></div>
+      </div>
+      <div class="modal-det-nota" id="detNotaBox"></div>
+      <button class="modal-det-close" onclick="cerrarModalDet()">Cerrar</button>
+    </div>
+    <div class="modal-det-body">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;margin-bottom:10px;letter-spacing:0.05em;">Estudiantes</div>
+        <div class="det-stu-nav" id="detStuNav"></div>
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;margin-bottom:10px;letter-spacing:0.05em;">
+        Respuestas
+      </div>
+      <div class="resp-grid" id="detRespGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal recuperar borrador -->
+<div class="modal-bg hidden" id="modalRecovery">
+  <div class="modal-recovery">
+    <div class="modal-recovery-title">Borrador encontrado</div>
+    <div class="modal-recovery-body">
+      Se encontro una evaluacion en progreso guardada automaticamente. Deseas continuar donde lo dejaste?
+    </div>
+    <div class="modal-recovery-meta" id="recoveryMeta"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="recuperarBorrador()">Continuar evaluacion</button>
+      <button class="btn btn-danger" onclick="descartarBorrador()">Descartar y empezar de nuevo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal borrar -->
+<div class="modal-bg hidden" id="modalBorrar">
+  <div class="modal">
+    <div class="modal-title">Eliminar evaluacion</div>
+    <div class="modal-body" id="modalBorrarMsg"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="cerrarModal()" style="padding:9px 20px;">Cancelar</button>
+      <button class="btn btn-danger" style="padding:9px 20px;" onclick="confirmarBorrar()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="/src/app/index.js"></script>
+
+</body>
+</html>
