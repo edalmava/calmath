@@ -97,6 +97,7 @@ export function irPaso2() {
   for (let i = 0; i < numP; i++) {
     const item = document.createElement('div');
     item.className = 'answer-item';
+    item.id = 'clave_q' + i;
     const pesoDefault = (pt / numP).toFixed(4);
     const pesoField = pesoMode === 'diferente' ? `
       <div class="peso-field">
@@ -242,7 +243,7 @@ export function irPaso4() {
       <div class="stat-chip-val" style="color:var(--accent2)">${pctApr}%</div>
     </div>`;
 
-  const btn = document.getElementById('btnGuardar');
+  const btn = document.getElementById('step4SaveBtn');
   btn.textContent = 'Guardar evaluacion';
   btn.disabled = false;
   btn.style.opacity = '1';

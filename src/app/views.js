@@ -434,7 +434,7 @@ export async function importarEvaluacion(file) {
             continue;
           }
 
-          if (inMetadata && line.startsWith('nombre,') ||
+          if (inMetadata && (line.startsWith('nombre,') ||
               line.startsWith('fecha,') ||
               line.startsWith('periodo,') ||
               line.startsWith('numP,') ||
@@ -444,7 +444,7 @@ export async function importarEvaluacion(file) {
               line.startsWith('notaAprobacion,') ||
               line.startsWith('pesoMode,') ||
               line.startsWith('pesosPreguntas,') ||
-              line.startsWith('claveRespuestas,')) {
+              line.startsWith('claveRespuestas,'))) {
             const [key, ...valueParts] = line.split(',');
             const value = valueParts.join(',');
             if (key === 'numP' || key === 'numE' || key === 'notaMaxima' || key === 'notaAprobacion') {
@@ -456,16 +456,42 @@ export async function importarEvaluacion(file) {
             }
           }
 
-          if (inEstudiantes && line.startsWith('#')) {
-            const parts = line.substring(1).split('|');
-            const num = parseInt(parts[0], 10);
-            if (!isNaN(num) && parts.length >= 4) {
-              const nombre = parts[1] || '';
-              const respuestasStr = parts[2] || '';
-              const respuestas = respuestasStr.split('|').map(r => r && r !== '-' ? r : '');
-              const calif = parts[3]?.trim() === 'Si';
-              estudiantesData.push({ nombre, respuestas, calificados: calif });
+          if (inEstudiantes) {
+            if (line.startsWith('#') && line.includes(',')) {
+              continue;
             }
+
+            const isCalifSi = line.endsWith('|Si');
+            const isCalifNo = line.endsWith('|No');
+            if (!isCalifSi && !isCalifNo) {
+              continue;
+            }
+
+            const calif = isCalifSi ? 'Si' : 'No';
+            const califLen = calif.length + 1;
+            const lineWithoutCalif = line.substring(0, line.length - califLen);
+
+            const pipes = lineWithoutCalif.split('|');
+            if (pipes.length < 2) continue;
+
+            const numP = metadata.numP || 5;
+            const num = parseInt(pipes[0], 10);
+
+            if (isNaN(num)) continue;
+
+            const pipesLen = pipes.length;
+            const nombreEnd = pipesLen - numP;
+
+            if (nombreEnd < 1) continue;
+
+            const nombre = pipes.slice(1, nombreEnd).join('|');
+            const respuestasArr = pipes.slice(nombreEnd);
+
+            estudiantesData.push({
+              nombre,
+              respuestas: respuestasArr,
+              calificados: calif === 'Si'
+            });
           }
         }
 
@@ -473,7 +499,14 @@ export async function importarEvaluacion(file) {
           throw new Error('El archivo CSV no tiene el formato esperado. Falta metadata.');
         }
 
+        console.log('Creating evaluacion object...');
+
         const evaluacion = {
+          evalMeta: {
+            nombre: metadata.nombre,
+            fecha: metadata.fecha || '',
+            periodo: metadata.periodo || '',
+          },
           nombre: metadata.nombre,
           fecha: metadata.fecha || '',
           periodo: metadata.periodo || '',

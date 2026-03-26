@@ -410,12 +410,12 @@ window.guardarEvaluacion = async function() {
     await Promise.all(fotoPromises);
     await dbEliminarBorrador().catch(() => { });
     setState({ yaGuardada: true });
-    const btn = document.getElementById('btnGuardar');
+    const btn = document.getElementById('step4SaveBtn');
     btn.textContent = 'Guardada';
     btn.disabled = true;
     btn.style.opacity = '0.6';
     const conFotos = estudiantesfotos.filter(Boolean).length;
-    toast(`Evaluacion guardada${conFotos ? ` · ${conFotos} foto(s) incluida(s)` : ''}`);
+    toast('Evaluacion guardada' + (conFotos ? ' · ' + conFotos + ' foto(s) incluida(s)' : ''));
   } catch (e) {
     toast('Error al guardar: ' + e.message, true);
   }
