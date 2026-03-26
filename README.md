@@ -10,7 +10,8 @@ Aplicación web vanilla JavaScript para gestionar y calificar evaluaciones de ma
 - **Fotos de exámenes**: Adjuntar imágenes a cada evaluación
 - **Autoguardado**: Borrador automático al calificar cada estudiante
 - **Historial**: Evaluaciones guardadas en IndexedDB
-- **Exportar CSV**: Descargar resultados con análisis por pregunta
+- **Exportar/Importar CSV**: Descargar e importar evaluaciones con análisis por pregunta
+- **Distribución de respuestas**: Ver cómo respondieron los estudiantes cada pregunta (A/B/C/D)
 - **Navegación por teclado**: Atajos en paso 3 (←/→ estudiantes, A/B/C/D respuestas, Enter calificar)
 - **Configuración global**: Nota máxima y de aprobación personalizables
 - **Seguridad**: CSP, sanitización XSS, validación de entrada
