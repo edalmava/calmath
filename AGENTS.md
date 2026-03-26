@@ -1,16 +1,15 @@
 # EvalMath - Agent Development Guide
 
-## Project Overview
-Vanilla JavaScript application for managing and grading ICFES-style math evaluations. Uses IndexedDB for persistence with draft auto-save and exam photo attachments.
+Vanilla JavaScript app for managing and grading ICFES-style math evaluations. Uses IndexedDB with draft auto-save and exam photo attachments.
 
 ## Commands
 
 ```bash
-# Install dependencies
+# Install
 npm install
 
-# Development
-npm run dev              # Start dev server (port 3000)
+# Dev/Build
+npm run dev              # Dev server (port 3000)
 npm run build            # Production build to dist/
 npm run preview          # Preview production build
 
@@ -23,10 +22,10 @@ npm run test             # Run all tests once
 npm run test:watch       # Watch mode
 npm run test:coverage    # With coverage report
 
-# Run single test file
+# Single test file
 npx vitest run tests/app.test.js
 
-# Run single test
+# Single test by name
 npx vitest run -t "calculates correct grade"
 ```
 
@@ -34,25 +33,27 @@ npx vitest run -t "calculates correct grade"
 
 ```
 calmath/
-├── index.html              # Entry point
-├── package.json            # Dependencies + scripts
-├── vite.config.js          # Vite config
+├── index.html                    # Entry point
+├── package.json                  # Dependencies + scripts
+├── vite.config.js                # Vite config
+├── eslint.config.js              # ESLint config
 ├── src/
-│   ├── styles.css          # All styles
+│   ├── styles.css                 # All styles
 │   ├── app/
-│   │   ├── index.js        # Entry point + exports to window
-│   │   ├── state.js        # Global state (getState/setState)
-│   │   ├── calification.js # calcNota, calcAciertos, pesoTotal
-│   │   ├── steps.js        # irPaso2, irPaso3, irPaso4, setStep
-│   │   ├── render.js      # DOM rendering
-│   │   └── views.js       # Views + modals
+│   │   ├── index.js               # Entry + exports to window
+│   │   ├── state.js               # Global state (getState/setState)
+│   │   ├── calification.js        # calcNota, calcAciertos, pesoTotal
+│   │   ├── steps.js               # irPaso2, irPaso3, irPaso4, setStep
+│   │   ├── render.js              # DOM rendering + bindPaso3Events
+│   │   ├── views.js               # Views + modals + escapeHtml
+│   │   └── bindHtmlEvents.js      # Event binding for CSP compliance
 │   └── db/
-│       ├── indexedDB.js    # Core DB (abrirDB, dbGuardar, dbListar)
-│       ├── draft.js        # dbGuardarBorrador, dbObtenerBorrador
-│       └── photos.js       # dbGuardarFoto, dbObtenerFoto
+│       ├── indexedDB.js           # Core DB (abrirDB, dbGuardar, dbListar)
+│       ├── draft.js                # dbGuardarBorrador, dbObtenerBorrador
+│       └── photos.js              # dbGuardarFoto, dbObtenerFoto
 └── tests/
-    ├── app.test.js         # Calc logic tests
-    └── db.test.js          # DB helper tests
+    ├── app.test.js                # Calc logic tests
+    └── db.test.js                 # DB helper tests
 ```
 
 ## Code Style
@@ -61,8 +62,11 @@ calmath/
 - **Vanilla JS only** - No frameworks. Use browser APIs directly.
 - **ES Modules** - Use `import`/`export`.
 - **Single Responsibility** - Each module has focused purpose.
+- **Use function declarations**, not arrow functions at top level
+- Arrow functions OK for callbacks: `arr.map(x => x * 2)`
+- Keep functions under 50 lines
 
-### Naming
+### Naming Conventions
 
 | Type | Convention | Example |
 |------|------------|---------|
@@ -72,23 +76,19 @@ calmath/
 | Files | kebab-case | `indexedDB.js`, `calification.js` |
 | CSS classes | kebab-case | `.btn-primary`, `.step-dot` |
 
-### Functions
-- Use `function name()` declarations, not arrow functions at top level
-- Arrow functions OK for callbacks: `arr.map(x => x * 2)`
-- Keep functions under 50 lines
-
 ### State Management (`src/app/state.js`)
 ```javascript
-// Bad
+// Bad - mutates state directly
 numP = 20;
 
-// Good
+// Good - uses setState
 setState({ numP: 20 });
 ```
 
 ### HTML Generation
 - Use template literals with backticks
-- Escape user input: `.replace(/"/g, '&quot;')`
+- Always escape user input: use `escapeHtml(str)` from views.js
+- Use string concatenation instead of template literals for simple values
 
 ### IndexedDB
 - All operations return Promises
@@ -107,6 +107,46 @@ try {
 - Use CSS custom properties from `:root`
 - BEM-like naming: `.block__element--modifier`
 - Keep styles in `src/styles.css`
+
+### Event Binding (CSP Compliance)
+- **Never use inline event handlers** (`onclick`, `onchange`, etc.) in HTML
+- Use `bindHtmlEvents.js` for static HTML elements
+- Use `bindPaso2Events()` and `bindPaso3Events(idx)` for dynamically generated content
+
+```javascript
+// Bad - violates CSP
+<button onclick="myFunc()">Click</button>
+
+// Good - use event binding
+document.getElementById('myBtn').onclick = () => myFunc();
+```
+
+## Security Guidelines
+
+### XSS Prevention
+- Always escape user-generated content with `escapeHtml(str)`
+- Never use `innerHTML` with unsanitized user input
+- Use `textContent` instead of `innerHTML` when possible
+
+### Input Validation
+- Validate all numeric inputs with parseInt/parseFloat + defaults
+- Enforce ranges: questions (1-100), students (1-200)
+
+### CSP
+- Content Security Policy meta tag in index.html
+- No inline event handlers - use binding functions
+- Use `'unsafe-inline'` in CSP only if absolutely necessary
+
+## Keyboard Shortcuts (Step 3)
+
+| Key | Action |
+|-----|--------|
+| `←` / `PageUp` | Previous student |
+| `→` / `PageDown` | Next student |
+| `A` / `B` / `C` / `D` | Mark answer (first unanswered or last) |
+| `Enter` | Grade and advance |
+| `Home` | First student |
+| `End` | Last student |
 
 ## Testing
 
@@ -183,7 +223,8 @@ function abrirModal() {
 | `dbObtenerBorrador()` | Returns draft or null |
 
 ## Notes
-- No React/Vue/frameworks - pure vanilla JavaScript
-- IndexedDB persistence (evaluations, drafts, photos)
+- No frameworks - pure vanilla JavaScript
+- IndexedDB persistence (evaluations, drafts, photos, settings)
 - Offline capable after first load
 - Photos stored as Blobs in IndexedDB
+- CSP enforced - no inline event handlers
