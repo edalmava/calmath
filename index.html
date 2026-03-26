@@ -33,6 +33,13 @@
     <div class="card">
       <div class="card-title">Historial de evaluaciones</div>
       <div class="card-desc">Evaluaciones guardadas localmente en este dispositivo mediante IndexedDB.</div>
+      <div style="margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <label class="btn btn-secondary" style="cursor:pointer;">
+          Importar CSV
+          <input type="file" id="importCsvInput" accept=".csv,.txt" style="display:none;" />
+        </label>
+        <span style="font-size:0.7rem;color:var(--muted);">Importar evaluacion desde archivo CSV exportado</span>
+      </div>
       <div id="histList"></div>
     </div>
   </main>

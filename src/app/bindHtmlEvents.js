@@ -28,4 +28,15 @@ export function bindHtmlEvents() {
 
   document.getElementById('modalSettingsCancelBtn').onclick = () => window.cerrarModalSettings();
   document.getElementById('modalSettingsSaveBtn').onclick = () => window.guardarSettings();
+
+  document.getElementById('importCsvInput').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      await window.importarEvaluacion(file);
+    } catch (err) {
+      window.toast('Error al importar: ' + err.message, true);
+    }
+    e.target.value = '';
+  };
 }

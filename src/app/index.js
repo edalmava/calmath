@@ -5,7 +5,7 @@ import { getState, setState } from './state.js';
 import { pesoTotal, calcNota, notaMinima, notaMaxima, notaAprobacion } from './calification.js';
 import { irPaso2, selClave, actualizarPeso, bindPaso2Events, irPaso3, irPaso4, setStep, metaHTML, reiniciar } from './steps.js';
 import { buildStudentNav, loadStudent, renderFotoZoneHTML, bindFotoZone, bindStuNameInput, bindPaso3Events, procesarFoto, eliminarFoto, abrirLightbox, cerrarLightbox, selRespEstu, calificarEstudiante, renderDraftProgress, renderPesoSummary, distribuirPesosIgual, handleStudentKey } from './render.js';
-import { showView, toast, renderHistorial, mostrarResumen, pedirBorrar, cerrarModal, confirmarBorrar, abrirModalSettings, cerrarModalSettings, guardarSettings, cargarSettings, exportarCSV, escapeHtml } from './views.js';
+import { showView, toast, renderHistorial, mostrarResumen, pedirBorrar, cerrarModal, confirmarBorrar, abrirModalSettings, cerrarModalSettings, guardarSettings, cargarSettings, exportarCSV, escapeHtml, importarEvaluacion } from './views.js';
 import { bindHtmlEvents } from './bindHtmlEvents.js';
 
 window.abrirDB = abrirDB;
@@ -68,6 +68,7 @@ window.cerrarModalSettings = cerrarModalSettings;
 window.guardarSettings = guardarSettings;
 window.exportarCSV = exportarCSV;
 window.escapeHtml = escapeHtml;
+window.importarEvaluacion = importarEvaluacion;
 
 window.setPesoMode = function(mode) {
   setState({ pesoMode: mode });

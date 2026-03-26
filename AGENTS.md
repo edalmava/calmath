@@ -228,3 +228,31 @@ function abrirModal() {
 - Offline capable after first load
 - Photos stored as Blobs in IndexedDB
 - CSP enforced - no inline event handlers
+
+## Import/Export CSV
+
+### Export Format
+The CSV export includes metadata for re-importation:
+
+```
+# ===== METADATA (para importacion) =====
+# Formato: EVALMATH_v1
+nombre,Parcial Algebra
+fecha,2024-03-15
+periodo,2
+numP,20
+numE,30
+sistemaCalif,1a5
+notaMaxima,5
+notaAprobacion,3
+pesoMode,igual
+pesosPreguntas,0.2000,0.2000,...
+claveRespuestas,A,B,C,D,A,B,...
+
+# ===== ESTUDIANTES =====
+#num,nombre,respuestas,calificado
+1|Juan Pérez|A|B|C|D|A|No
+```
+
+### Import
+Use the "Importar CSV" button in the Historial view. The import parses the metadata section and student data, recalculates grades, and saves to IndexedDB.
