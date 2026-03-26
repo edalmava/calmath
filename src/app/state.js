@@ -7,12 +7,20 @@ let estudiantesNombres = [];
 let estudiantesCalificados = [];
 let estudiantesfotos = [];
 let currentStudent = 0;
+let currentResumen = null;
 let evalMeta = { nombre: '', fecha: '', periodo: '' };
 let evalId = null;
 let pendingDeleteId = null;
 let yaGuardada = false;
 let autoguardando = false;
 let sistemaCalif = '1a5';
+
+const defaultSettings = {
+  notaMaxima: 5,
+  notaAprobacion: 3,
+};
+
+let appSettings = { ...defaultSettings };
 
 const opts = ['A', 'B', 'C', 'D'];
 
@@ -27,12 +35,14 @@ export function getState() {
     estudiantesCalificados,
     estudiantesfotos,
     currentStudent,
+    currentResumen,
     evalMeta,
     evalId,
     pendingDeleteId,
     yaGuardada,
     autoguardando,
     sistemaCalif,
+    appSettings,
     opts,
   };
 }
@@ -49,12 +59,22 @@ export function setState(newState) {
   if (newState.estudiantesCalificados !== undefined) estudiantesCalificados = newState.estudiantesCalificados;
   if (newState.estudiantesfotos !== undefined) estudiantesfotos = newState.estudiantesfotos;
   if (newState.currentStudent !== undefined) currentStudent = newState.currentStudent;
+  if (newState.currentResumen !== undefined) currentResumen = newState.currentResumen;
   if (newState.evalMeta !== undefined) evalMeta = newState.evalMeta;
   if (newState.evalId !== undefined) evalId = newState.evalId;
   if (newState.pendingDeleteId !== undefined) pendingDeleteId = newState.pendingDeleteId;
   if (newState.yaGuardada !== undefined) yaGuardada = newState.yaGuardada;
   if (newState.autoguardando !== undefined) autoguardando = newState.autoguardando;
   if (newState.sistemaCalif !== undefined) sistemaCalif = newState.sistemaCalif;
+  if (newState.appSettings !== undefined) appSettings = newState.appSettings;
+}
+
+export function getSettings() {
+  return appSettings;
+}
+
+export function setSettings(newSettings) {
+  appSettings = { ...appSettings, ...newSettings };
 }
 
 export function resetState() {
@@ -93,5 +113,7 @@ export {
   yaGuardada,
   autoguardando,
   sistemaCalif,
+  appSettings,
+  defaultSettings,
   opts,
 };

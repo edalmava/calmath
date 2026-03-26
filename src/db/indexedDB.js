@@ -1,8 +1,9 @@
 const DB_NAME = 'evalmath_db';
-const DB_VER = 4;
+const DB_VER = 5;
 const STORE = 'evaluaciones';
 const FOTO_STORE = 'fotos';
 const DRAFT_STORE = 'borradores';
+const SETTINGS_STORE = 'configuracion';
 let db = null;
 
 export function abrirDB() {
@@ -20,6 +21,9 @@ export function abrirDB() {
       }
       if (!d.objectStoreNames.contains(DRAFT_STORE)) {
         d.createObjectStore(DRAFT_STORE, { keyPath: 'draftId' });
+      }
+      if (!d.objectStoreNames.contains(SETTINGS_STORE)) {
+        d.createObjectStore(SETTINGS_STORE, { keyPath: 'id' });
       }
     };
     req.onsuccess = (e) => {
@@ -64,6 +68,24 @@ export function dbEliminar(id) {
   return new Promise((res, rej) => {
     const r = tx('readwrite').delete(id);
     r.onsuccess = () => res();
+    r.onerror = (e) => rej(e.target.error);
+  });
+}
+
+const txSettings = (mode) => db.transaction(SETTINGS_STORE, mode).objectStore(SETTINGS_STORE);
+
+export function dbObtenerSettings() {
+  return new Promise((res, rej) => {
+    const r = txSettings('readonly').get('app');
+    r.onsuccess = () => res(r.result || null);
+    r.onerror = (e) => rej(e.target.error);
+  });
+}
+
+export function dbGuardarSettings(obj) {
+  return new Promise((res, rej) => {
+    const r = txSettings('readwrite').put({ id: 'app', ...obj });
+    r.onsuccess = () => res(r.result);
     r.onerror = (e) => rej(e.target.error);
   });
 }

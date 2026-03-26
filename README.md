@@ -10,6 +10,10 @@ Aplicación web vanilla JavaScript para gestionar y calificar evaluaciones de ma
 - **Fotos de exámenes**: Adjuntar imágenes a cada evaluación
 - **Autoguardado**: Borrador automático al calificar cada estudiante
 - **Historial**: Evaluaciones guardadas en IndexedDB
+- **Exportar CSV**: Descargar resultados con análisis por pregunta
+- **Navegación por teclado**: Atajos en paso 3 (←/→ estudiantes, A/B/C/D respuestas, Enter calificar)
+- **Configuración global**: Nota máxima y de aprobación personalizables
+- **Seguridad**: CSP, sanitización XSS, validación de entrada
 
 ## Requisitos
 
@@ -52,7 +56,8 @@ calmath/
 │   │   ├── calification.js # Cálculo de notas
 │   │   ├── steps.js        # Navegación entre pasos
 │   │   ├── render.js       # Renderizado DOM
-│   │   └── views.js        # Vistas y modales
+│   │   ├── views.js        # Vistas y modales
+│   │   └── bindHtmlEvents.js # Binding de eventos (CSP)
 │   └── db/
 │       ├── indexedDB.js    # IndexedDB core
 │       ├── draft.js        # Borradores
@@ -62,12 +67,30 @@ calmath/
     └── db.test.js          # Tests de IndexedDB
 ```
 
+## Atajos de teclado (Paso 3)
+
+| Tecla | Acción |
+|-------|--------|
+| `←` / `PageUp` | Estudiante anterior |
+| `→` / `PageDown` | Siguiente estudiante |
+| `A` / `B` / `C` / `D` | Marcar respuesta |
+| `Enter` | Calificar y avanzar |
+| `Home` | Primer estudiante |
+| `End` | Último estudiante |
+
 ## Tecnologías
 
 - **Vite** — Build tool
 - **ESLint** — Linting
 - **Vitest** — Testing
 - **IndexedDB** — Persistencia local
+
+## Seguridad
+
+- Content Security Policy (CSP)
+- Sanitización HTML contra XSS
+- Validación de rangos de entrada
+- Eventos bindeados vía JavaScript (no inline)
 
 ## Licencia
 

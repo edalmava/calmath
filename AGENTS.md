@@ -1,88 +1,83 @@
 # EvalMath - Agent Development Guide
 
 ## Project Overview
+Vanilla JavaScript application for managing and grading ICFES-style math evaluations. Uses IndexedDB for persistence with draft auto-save and exam photo attachments.
 
-EvalMath is a vanilla JavaScript application for managing and grading ICFES-style math evaluations. It uses IndexedDB for persistence, supports draft auto-save, and allows attaching photos of exams.
-
-## Quick Start
+## Commands
 
 ```bash
 # Install dependencies
 npm install
 
-# Start development server
-npm run dev
+# Development
+npm run dev              # Start dev server (port 3000)
+npm run build            # Production build to dist/
+npm run preview          # Preview production build
 
-# Build for production
-npm run build
+# Linting
+npm run lint             # Run ESLint
+npm run lint:fix         # Auto-fix ESLint issues
 
-# Run linting
-npm run lint
-npm run lint:fix
+# Testing
+npm run test             # Run all tests once
+npm run test:watch       # Watch mode
+npm run test:coverage    # With coverage report
 
-# Run tests
-npm run test           # Run all tests once
-npm run test:watch     # Watch mode
-npm run test:coverage  # With coverage report
+# Run single test file
+npx vitest run tests/app.test.js
+
+# Run single test
+npx vitest run -t "calculates correct grade"
 ```
 
 ## Project Structure
 
 ```
 calmath/
-├── index.html              # Main HTML entry point
-├── package.json            # Dependencies and scripts
-├── vite.config.js          # Vite configuration
-├── eslint.config.js        # ESLint rules
-├── vitest.config.js        # Vitest configuration
+├── index.html              # Entry point
+├── package.json            # Dependencies + scripts
+├── vite.config.js          # Vite config
 ├── src/
-│   ├── styles.css          # All application styles
+│   ├── styles.css          # All styles
 │   ├── app/
-│   │   ├── index.js        # Main entry point, initializes app
-│   │   ├── state.js        # Global state management
-│   │   ├── calification.js # Grade calculation logic
-│   │   ├── steps.js        # Step navigation (1-4)
-│   │   ├── render.js      # DOM rendering functions
-│   │   └── views.js       # View management + modals
+│   │   ├── index.js        # Entry point + exports to window
+│   │   ├── state.js        # Global state (getState/setState)
+│   │   ├── calification.js # calcNota, calcAciertos, pesoTotal
+│   │   ├── steps.js        # irPaso2, irPaso3, irPaso4, setStep
+│   │   ├── render.js      # DOM rendering
+│   │   └── views.js       # Views + modals
 │   └── db/
-│       ├── indexedDB.js    # IndexedDB core operations
-│       ├── draft.js        # Draft auto-save
-│       └── photos.js       # Photo storage
+│       ├── indexedDB.js    # Core DB (abrirDB, dbGuardar, dbListar)
+│       ├── draft.js        # dbGuardarBorrador, dbObtenerBorrador
+│       └── photos.js       # dbGuardarFoto, dbObtenerFoto
 └── tests/
-    ├── app.test.js         # Application logic tests
-    └── db.test.js         # IndexedDB tests
+    ├── app.test.js         # Calc logic tests
+    └── db.test.js          # DB helper tests
 ```
 
-## Code Style Guidelines
+## Code Style
 
-### General Principles
+### General
+- **Vanilla JS only** - No frameworks. Use browser APIs directly.
+- **ES Modules** - Use `import`/`export`.
+- **Single Responsibility** - Each module has focused purpose.
 
-- **Vanilla JavaScript**: No frameworks (React, Vue, etc.). Use browser APIs directly.
-- **ES Modules**: Use ES6 modules with `import`/`export`.
-- **Single Responsibility**: Each module should have a focused purpose.
-
-### Naming Conventions
+### Naming
 
 | Type | Convention | Example |
 |------|------------|---------|
 | Variables | camelCase | `numP`, `estudiantesNombres` |
 | Constants | UPPER_SNAKE | `DB_NAME`, `DB_VER` |
 | Functions | camelCase | `irPaso2()`, `calcNota()` |
-| File names | kebab-case | `indexedDB.js`, `calification.js` |
+| Files | kebab-case | `indexedDB.js`, `calification.js` |
 | CSS classes | kebab-case | `.btn-primary`, `.step-dot` |
 
 ### Functions
-
 - Use `function name()` declarations, not arrow functions at top level
-- Arrow functions are acceptable for callbacks: `arr.map(x => x * 2)`
-- Keep functions under 50 lines; split complex functions
+- Arrow functions OK for callbacks: `arr.map(x => x * 2)`
+- Keep functions under 50 lines
 
-### State Management
-
-- All mutable state lives in `src/app/state.js`
-- Use `getState()` to read, `setState()` to update
-- Never modify state directly; always use setters
-
+### State Management (`src/app/state.js`)
 ```javascript
 // Bad
 numP = 20;
@@ -92,170 +87,103 @@ setState({ numP: 20 });
 ```
 
 ### HTML Generation
-
 - Use template literals with backticks
-- Always escape user input: `.replace(/"/g, '&quot;')`
-- Create elements via `document.createElement()` for complex structures
-
-```javascript
-// Good
-const html = `<div class="card">${userName}</div>`;
-document.getElementById('container').innerHTML = html;
-```
+- Escape user input: `.replace(/"/g, '&quot;')`
 
 ### IndexedDB
-
-- All DB operations return Promises
-- Wrap in try/catch for error handling
-- Use helper functions from `src/db/`
+- All operations return Promises
+- Wrap in try/catch
+- Use helpers from `src/db/`
 
 ```javascript
-// Good
 try {
   const evals = await dbListar();
-  renderHistorial(evals);
 } catch (e) {
   toast('Error: ' + e.message, true);
 }
 ```
 
-### CSS Guidelines
-
-- Use CSS custom properties (variables) from `:root`
-- Follow BEM-like naming: `.block__element--modifier`
+### CSS
+- Use CSS custom properties from `:root`
+- BEM-like naming: `.block__element--modifier`
 - Keep styles in `src/styles.css`
 
 ## Testing
 
-### Running Tests
-
-```bash
-# Single run
-npm run test
-
-# Watch mode during development
-npm run test:watch
-
-# With coverage
-npm run test:coverage
-```
-
-### Writing Tests
-
-Tests go in `tests/` with `.test.js` extension:
+Tests go in `tests/*.test.js`:
 
 ```javascript
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 describe('calcNota', () => {
-  it('calculates correct grade for 1a5 system', () => {
-    // Setup
-    setState({ sistemaCalif: '1a5', pesosPreguntas: [1, 1, 1, 1] });
-    
-    // Execute
-    const nota = calcNota(['A', 'A', 'A', 'A']);
-    
-    // Assert
+  it('calculates correct grade', () => {
+    const nota = calcNota(['A', 'B', 'C', 'D']);
     expect(nota).toBe(5);
   });
 });
 ```
 
-### Test Focus Areas
-
+Focus areas:
 - Grade calculation (`calcNota`, `calcAciertos`)
 - State management (`getState`, `setState`)
-- IndexedDB operations (mock or use test DB)
 
 ## Common Patterns
 
-### Navigation Between Steps
+### Toast Notifications
+```javascript
+toast('Success message');
+toast('Error message', true); // second arg = isError
+```
 
+### Step Navigation
 ```javascript
 function irPaso2() {
-  // Validate
   if (!valid) return;
-  
-  // Update state
   setState({ numP: value });
-  
-  // Render
   document.getElementById('metaBanner2').innerHTML = metaHTML();
-  
-  // Navigate
   setStep(2);
 }
 ```
 
-### Toast Notifications
-
-```javascript
-toast('Mensaje de exito');
-toast('Mensaje de error', true); // second arg = isError
-```
-
-### Modal Pattern
-
+### Modal
 ```javascript
 function abrirModal() {
   document.getElementById('modalId').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
-
-function cerrarModal() {
-  document.getElementById('modalId').classList.add('hidden');
-  document.body.style.overflow = '';
-}
 ```
 
 ## Error Handling
-
-- Always wrap async operations in try/catch
+- Wrap async operations in try/catch
 - Show user-friendly errors via `toast(msg, true)`
-- Log detailed errors to console for debugging
-
-## Building for Production
-
-```bash
-npm run build
-```
-
-Output goes to `dist/`. Vite handles:
-- Minification
-- Asset hashing
-- Code splitting
+- Log detailed errors to console
 
 ## API Reference
 
 ### State (`src/app/state.js`)
-
 | Function | Description |
 |----------|-------------|
 | `getState()` | Returns current state object |
 | `setState(obj)` | Merges updates into state |
-| `resetState()` | Resets all state to initial |
 
 ### Calculation (`src/app/calification.js`)
-
 | Function | Description |
 |----------|-------------|
 | `pesoTotal()` | Returns 4 (1a5) or 5 (0a5) |
-| `calcNota(respuestas)` | Calculates grade for student |
+| `calcNota(respuestas)` | Calculates grade |
 | `calcAciertos(respuestas)` | Counts correct answers |
-| `notaMinima()` | Returns 0 or 1 based on system |
 
 ### Database (`src/db/*.js`)
-
 | Function | Description |
 |----------|-------------|
-| `abrirDB()` | Opens IndexedDB connection |
+| `abrirDB()` | Opens IndexedDB |
 | `dbGuardar(obj)` | Saves evaluation |
 | `dbListar()` | Returns all evaluations |
-| `dbEliminar(id)` | Deletes evaluation |
+| `dbGuardarBorrador(obj)` | Saves draft |
+| `dbObtenerBorrador()` | Returns draft or null |
 
 ## Notes
-
-- This project uses **Vanilla JavaScript** - no React, Vue, or other frameworks
-- IndexedDB is used for persistence (evaluations, drafts, photos)
-- The app works offline after first load
-- Photos are stored as Blobs in IndexedDB
+- No React/Vue/frameworks - pure vanilla JavaScript
+- IndexedDB persistence (evaluations, drafts, photos)
+- Offline capable after first load
+- Photos stored as Blobs in IndexedDB

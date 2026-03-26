@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self';">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>EvalMath — Gestor ICFES</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/styles.css">
@@ -13,8 +15,9 @@
   <div class="logo">EvalMath</div>
   <div class="header-sub">Gestor de Evaluaciones ICFES - Matematicas</div>
   <div class="header-actions">
-    <button class="btn-ghost active-nav" id="navNueva" onclick="showView('app')">+ Nueva</button>
-    <button class="btn-ghost" id="navHist" onclick="showView('historial')">Historial</button>
+    <button class="btn-ghost active-nav" id="navNueva">+ Nueva</button>
+    <button class="btn-ghost" id="navHist">Historial</button>
+    <button class="btn-ghost" id="navSettings">Configuracion</button>
     <div class="step-indicator" id="stepIndicator">
       <div class="step-dot active" id="dot1"></div>
       <div class="step-dot" id="dot2"></div>
@@ -38,10 +41,14 @@
 <!-- Resumen -->
 <div id="viewResumen" class="hidden">
   <main>
-    <button class="rsm-back" onclick="showView('historial')">Volver al historial</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+      <button class="rsm-back" id="rsmBackBtn">Volver al historial</button>
+      <button class="btn btn-secondary" id="rsmExportBtn">Exportar CSV</button>
+    </div>
     <div class="card">
       <div id="rsmHeader"></div>
       <div class="rsm-chips" id="rsmChips"></div>
+      <div id="rsmAnalisis"></div>
       <hr class="divider" style="margin-top:20px;">
       <table class="rsm-table">
         <thead>
@@ -99,8 +106,8 @@
     <div style="margin-bottom:18px;">
       <label>Peso de las preguntas</label>
       <div class="peso-mode-toggle">
-        <button class="peso-mode-btn pm-active" id="btnPesoIgual" onclick="setPesoMode('igual')">Igual peso</button>
-        <button class="peso-mode-btn" id="btnPesoDif" onclick="setPesoMode('diferente')">Peso diferente</button>
+        <button class="peso-mode-btn pm-active" id="btnPesoIgual">Igual peso</button>
+        <button class="peso-mode-btn" id="btnPesoDif">Peso diferente</button>
       </div>
       <div style="font-size:0.72rem;color:var(--muted);margin-top:7px;" id="pesoModeDesc">
         Todas las preguntas valen lo mismo.
@@ -110,8 +117,8 @@
     <div style="margin-bottom:18px;">
       <label>Sistema de calificacion</label>
       <div class="peso-mode-toggle">
-        <button class="peso-mode-btn pm-active" id="btnCalif1a5" onclick="setSistemaCalif('1a5')">1 a 5</button>
-        <button class="peso-mode-btn" id="btnCalif0a5" onclick="setSistemaCalif('0a5')">0 a 5</button>
+        <button class="peso-mode-btn pm-active" id="btnCalif1a5">1 a 5</button>
+        <button class="peso-mode-btn" id="btnCalif0a5">0 a 5</button>
       </div>
       <div style="font-size:0.72rem;color:var(--muted);margin-top:7px;" id="califDesc">
         La nota minima es 1.0 y la maxima es 5.0.
@@ -122,7 +129,7 @@
       Valor por pregunta: <span id="valorPregunta">-</span>
       Nota min.: <span id="notaMinLabel">1.0</span> | Nota max.: <span>5.0</span>
     </div>
-    <button class="btn btn-primary" onclick="irPaso2()">Continuar</button>
+    <button class="btn btn-primary" id="step1ContinueBtn">Continuar</button>
   </div>
 
   <!-- Paso 2 -->
@@ -132,8 +139,8 @@
     <div id="metaBanner2" class="meta-banner"></div>
     <div class="answer-grid" id="claveGrid"></div>
     <div class="actions-row">
-      <button class="btn btn-primary" onclick="irPaso3()">Continuar</button>
-      <button class="btn-ghost" onclick="setStep(1)" style="padding:11px 20px;">Volver</button>
+      <button class="btn btn-primary" id="step2ContinueBtn">Continuar</button>
+      <button class="btn-ghost" id="step2BackBtn" style="padding:11px 20px;">Volver</button>
     </div>
   </div>
 
@@ -162,8 +169,8 @@
     </table>
     <div id="statsBlock" style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;"></div>
     <div class="actions-row">
-      <button class="btn btn-primary" onclick="guardarEvaluacion()" id="btnGuardar">Guardar evaluacion</button>
-      <button class="btn btn-secondary" onclick="reiniciar()">Nueva evaluacion</button>
+      <button class="btn btn-primary" id="step4SaveBtn">Guardar evaluacion</button>
+      <button class="btn btn-secondary" id="step4NewBtn">Nueva evaluacion</button>
     </div>
   </div>
 
@@ -171,7 +178,7 @@
 </div>
 
 <!-- Modal detalle estudiante -->
-<div class="modal-det-bg hidden" id="modalDet" onclick="cerrarModalDet(event)">
+<div class="modal-det-bg hidden" id="modalDet">
   <div class="modal-det" id="modalDetInner">
     <div class="modal-det-header">
       <div class="modal-det-header-info">
@@ -180,7 +187,7 @@
         <div class="modal-det-meta" id="detMeta"></div>
       </div>
       <div class="modal-det-nota" id="detNotaBox"></div>
-      <button class="modal-det-close" onclick="cerrarModalDet()">Cerrar</button>
+      <button class="modal-det-close" id="modalDetCloseBtn">Cerrar</button>
     </div>
     <div class="modal-det-body">
       <div style="margin-bottom:16px;">
@@ -204,8 +211,8 @@
     </div>
     <div class="modal-recovery-meta" id="recoveryMeta"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <button class="btn btn-primary" onclick="recuperarBorrador()">Continuar evaluacion</button>
-      <button class="btn btn-danger" onclick="descartarBorrador()">Descartar y empezar de nuevo</button>
+      <button class="btn btn-primary" id="recoveryContinueBtn">Continuar evaluacion</button>
+      <button class="btn btn-danger" id="recoveryDiscardBtn">Descartar y empezar de nuevo</button>
     </div>
   </div>
 </div>
@@ -216,8 +223,39 @@
     <div class="modal-title">Eliminar evaluacion</div>
     <div class="modal-body" id="modalBorrarMsg"></div>
     <div class="modal-actions">
-      <button class="btn-ghost" onclick="cerrarModal()" style="padding:9px 20px;">Cancelar</button>
-      <button class="btn btn-danger" style="padding:9px 20px;" onclick="confirmarBorrar()">Eliminar</button>
+      <button class="btn-ghost" id="modalBorrarCancelBtn" style="padding:9px 20px;">Cancelar</button>
+      <button class="btn btn-danger" id="modalBorrarConfirmBtn" style="padding:9px 20px;">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Configuracion -->
+<div class="modal-bg hidden" id="modalSettings">
+  <div class="modal">
+    <div class="modal-title" style="color:var(--accent);">Configuracion</div>
+    <div class="modal-body">
+      <div class="form-field" style="margin-bottom:18px;">
+        <label>Nota maxima</label>
+        <input type="number" id="setNotaMaxima" min="1" max="10" step="0.1" value="5" />
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Valor maximo de la nota (por defecto: 5)</div>
+      </div>
+      <div class="form-field" style="margin-bottom:18px;">
+        <label>Nota de aprobacion</label>
+        <input type="number" id="setNotaAprobacion" min="1" max="10" step="0.1" value="3" />
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Nota minima para aprobar (por defecto: 3)</div>
+      </div>
+      <div class="form-field">
+        <label>Sistema de calificacion por defecto</label>
+        <select id="setSistemaCalif">
+          <option value="1a5">1 a 5 (nota minima 1.0)</option>
+          <option value="0a5">0 a 5 (nota minima 0.0)</option>
+        </select>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Sistema utilizado por defecto al crear una nueva evaluacion</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="modalSettingsCancelBtn" style="padding:9px 20px;">Cancelar</button>
+      <button class="btn btn-primary" id="modalSettingsSaveBtn" style="padding:9px 20px;">Guardar</button>
     </div>
   </div>
 </div>

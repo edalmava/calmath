@@ -6,7 +6,8 @@ export function pesoTotal() {
 }
 
 export function notaAprobacion() {
-  return 3;
+  const { appSettings } = getState();
+  return appSettings?.notaAprobacion ?? 3;
 }
 
 export function notaMinima() {
@@ -14,8 +15,14 @@ export function notaMinima() {
   return sistemaCalif === '0a5' ? 0 : 1;
 }
 
+export function notaMaxima() {
+  const { appSettings } = getState();
+  return appSettings?.notaMaxima ?? 5;
+}
+
 export function calcNota(respuestas) {
-  const { numP, claveRespuestas, pesosPreguntas, sistemaCalif } = getState();
+  const { numP, claveRespuestas, pesosPreguntas, sistemaCalif, appSettings } = getState();
+  const maxNota = appSettings?.notaMaxima ?? 5;
   let sumaPesos = 0;
   for (let i = 0; i < numP; i++) {
     if (respuestas[i] === claveRespuestas[i]) {
@@ -23,7 +30,7 @@ export function calcNota(respuestas) {
     }
   }
   const nota = sistemaCalif === '0a5' ? sumaPesos : 1 + sumaPesos;
-  return Math.min(5, Math.max(notaMinima(), nota));
+  return Math.min(maxNota, Math.max(notaMinima(), nota));
 }
 
 export function calcAciertos(respuestas) {
@@ -31,7 +38,7 @@ export function calcAciertos(respuestas) {
   return respuestas.filter((r, i) => r === claveRespuestas[i]).length;
 }
 
-export function calcNotaWithParams(respuestas, clave, pesos, numQuestions, sistema, notaMin) {
+export function calcNotaWithParams(respuestas, clave, pesos, numQuestions, sistema, notaMin, maxNota = 5) {
   let sumaPesos = 0;
   for (let i = 0; i < numQuestions; i++) {
     if (respuestas[i] === clave[i]) {
@@ -39,5 +46,5 @@ export function calcNotaWithParams(respuestas, clave, pesos, numQuestions, siste
     }
   }
   const nota = sistema === '0a5' ? sumaPesos : 1 + sumaPesos;
-  return Math.min(5, Math.max(notaMin, nota));
+  return Math.min(maxNota, Math.max(notaMin, nota));
 }

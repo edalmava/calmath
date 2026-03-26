@@ -1,5 +1,5 @@
 import { getState, setState } from './state.js';
-import { calcNota, calcAciertos } from './calification.js';
+import { calcNota, calcAciertos, notaAprobacion } from './calification.js';
 
 export function buildStudentNav() {
   const { numE, estudiantesCalificados, estudiantesNombres } = getState();
@@ -29,7 +29,7 @@ export function loadStudent(idx) {
   document.querySelectorAll('.stu-tab').forEach((b, i) => {
     const isActive = i === idx;
     const isGraded = current.estudiantesCalificados[i];
-    b.className = `stu-tab${isActive ? ' active' : ''}${isGraded ? ' graded' : ''}`;
+    b.className = 'stu-tab' + (isActive ? ' active' : '') + (isGraded ? ' graded' : '');
   });
 
   const panel = document.getElementById('studentPanel');
@@ -39,15 +39,14 @@ export function loadStudent(idx) {
     <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:16px;">
       <div style="flex:1;min-width:200px;">
         <label>Nombre del estudiante</label>
-        <input type="text" id="stuName" value="${current.estudiantesNombres[idx].replace(/"/g, '&quot;')}"
-          onchange="estudiantesNombres[currentStudent]=this.value; const t=document.getElementById('stuTab_'+currentStudent); if(t) t.title=this.value;" />
+        <input type="text" id="stuName" value="${current.estudiantesNombres[idx].replace(/"/g, '&quot;')}" />
       </div>
       <div style="flex:1;min-width:200px;">
         <div class="foto-section-title">Foto del examen</div>
         <div id="fotoContainer_${idx}">${renderFotoZoneHTML(idx)}</div>
       </div>
     </div>
-    <div class="answer-grid" id="stuGrid">`;
+    <div class="answer-grid" id="stuGrid" tabindex="0" onkeydown="handleStudentKey(event)">`;
 
   for (let i = 0; i < numP; i++) {
     const resp = current.estudiantesRespuestas[idx][i];
@@ -64,7 +63,7 @@ export function loadStudent(idx) {
     } else {
       if (o === resp) cls += ' selected';
     }
-    return `<button class="${cls}" onclick="selRespEstu(${i},'${o}',this)">${o}</button>`;
+    return '<button class="' + cls + '">' + o + '</button>';
   }).join('')}
       </div>
     </div>`;
@@ -76,7 +75,8 @@ export function loadStudent(idx) {
     const aciertos = calcAciertos(resp_idx);
     const nota = calcNota(resp_idx);
     const pct = ((aciertos / numP) * 100).toFixed(0);
-    const barColor = nota >= 3 ? 'var(--green)' : nota >= 2 ? 'var(--accent)' : 'var(--red)';
+    const notaAprueba = notaAprobacion();
+    const barColor = nota >= notaAprueba ? 'var(--green)' : nota >= notaAprueba - 1 ? 'var(--accent)' : 'var(--red)';
     html += `<hr class="divider">
     <div class="result-card">
       <div class="result-left">
@@ -102,44 +102,94 @@ export function loadStudent(idx) {
   }
 
   html += '<div class="actions-row">';
-  if (!cal) html += '<button class="btn btn-success" onclick="calificarEstudiante()">Calificar</button>';
-  if (idx < numE - 1) html += `<button class="btn btn-secondary" onclick="loadStudent(${idx + 1})">Siguiente</button>`;
-  if (current.estudiantesCalificados.every(Boolean)) html += '<button class="btn btn-primary" onclick="irPaso4()">Ver resumen</button>';
+  if (!cal) html += '<button class="btn btn-success" id="calificarBtn">Calificar</button>';
+  if (idx < numE - 1) html += '<button class="btn btn-secondary" id="siguienteBtn">Siguiente</button>';
+  if (current.estudiantesCalificados.every(Boolean)) html += '<button class="btn btn-primary" id="resumenBtn">Ver resumen</button>';
   html += '</div>';
 
   panel.innerHTML = html;
   bindFotoZone(idx);
+  bindStuNameInput(idx);
+  bindPaso3Events(idx);
+  setTimeout(() => {
+    const grid = document.getElementById('stuGrid');
+    if (grid) grid.focus();
+  }, 10);
+}
+
+export function bindPaso3Events(idx) {
+  const panel = document.getElementById('studentPanel');
+  if (!panel) return;
+
+  const grid = panel.querySelector('#stuGrid');
+  if (grid) {
+    grid.querySelectorAll('.answer-item').forEach(item => {
+      const qi = parseInt(item.querySelector('.options').id.replace('stu_q', ''));
+      item.querySelectorAll('.opt-btn').forEach(btn => {
+        btn.onclick = () => {
+          const opt = btn.textContent;
+          window.selRespEstu(qi, opt, btn);
+        };
+      });
+    });
+  }
+
+  const calificarBtn = document.getElementById('calificarBtn');
+  if (calificarBtn) calificarBtn.onclick = () => calificarEstudiante();
+
+  const siguienteBtn = document.getElementById('siguienteBtn');
+  if (siguienteBtn) siguienteBtn.onclick = () => loadStudent(idx + 1);
+
+  const resumenBtn = document.getElementById('resumenBtn');
+  if (resumenBtn) resumenBtn.onclick = () => window.irPaso4();
+
+  const fotoThumb = document.getElementById('fotoThumb_' + idx);
+  if (fotoThumb) {
+    const { estudiantesfotos } = getState();
+    const foto = estudiantesfotos[idx];
+    if (foto) {
+      fotoThumb.onclick = () => abrirLightbox(foto.objectURL, foto.nombre);
+    }
+  }
+
+  const fotoDel = document.getElementById('fotoDel_' + idx);
+  if (fotoDel) {
+    fotoDel.onclick = (e) => {
+      e.stopPropagation();
+      eliminarFoto(idx, e);
+    };
+  }
 }
 
 export function renderFotoZoneHTML(idx) {
   const { estudiantesfotos } = getState();
   const foto = estudiantesfotos[idx];
   if (foto) {
-    return `<div class="foto-thumb-wrap" onclick="abrirLightbox('${foto.objectURL}','${foto.nombre.replace(/'/g, "\\'")}')">
-      <img class="foto-thumb" src="${foto.objectURL}" alt="Examen" />
-      <div class="foto-thumb-badge">
-        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;">${foto.nombre}</span>
-        <button class="foto-del-btn" onclick="eliminarFoto(${idx},event)">x</button>
-      </div>
-    </div>`;
+    return '<div class="foto-thumb-wrap" id="fotoThumb_' + idx + '">' +
+      '<img class="foto-thumb" src="' + foto.objectURL + '" alt="Examen" />' +
+      '<div class="foto-thumb-badge">' +
+      '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;">' + foto.nombre + '</span>' +
+      '<button class="foto-del-btn" id="fotoDel_' + idx + '">x</button>' +
+      '</div>' +
+      '</div>';
   }
-  return `<div class="foto-zone" id="fotoZone_${idx}">
-    <input type="file" id="fotoInput_${idx}" accept="image/*" />
-    <div class="foto-zone-label">
-      <div class="foto-zone-icon">📋</div>
-      <div>Arrastra o haz clic para subir la foto del examen</div>
-      <div style="font-size:0.68rem;margin-top:4px;color:var(--border)">JPG, PNG, WEBP</div>
-    </div>
-  </div>`;
+  return '<div class="foto-zone" id="fotoZone_' + idx + '">' +
+    '<input type="file" id="fotoInput_' + idx + '" accept="image/*" />' +
+    '<div class="foto-zone-label">' +
+    '<div class="foto-zone-icon">📋</div>' +
+    '<div>Arrastra o haz clic para subir la foto del examen</div>' +
+    '<div style="font-size:0.68rem;margin-top:4px;color:var(--border)">JPG, PNG, WEBP</div>' +
+    '</div>' +
+    '</div>';
 }
 
 export function bindFotoZone(idx) {
-  const input = document.getElementById(`fotoInput_${idx}`);
+  const input = document.getElementById('fotoInput_' + idx);
   if (!input) return;
   input.addEventListener('change', e => {
     if (e.target.files[0]) procesarFoto(idx, e.target.files[0]);
   });
-  const zone = document.getElementById(`fotoZone_${idx}`);
+  const zone = document.getElementById('fotoZone_' + idx);
   if (!zone) return;
   zone.addEventListener('dragover', e => {
     e.preventDefault();
@@ -152,6 +202,20 @@ export function bindFotoZone(idx) {
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith('image/')) procesarFoto(idx, file);
     else window.toast('Solo se aceptan archivos de imagen', true);
+  });
+}
+
+export function bindStuNameInput(idx) {
+  const input = document.getElementById('stuName');
+  if (!input) return;
+  input.addEventListener('change', e => {
+    const nombre = e.target.value;
+    const state = getState();
+    const newNombres = [...state.estudiantesNombres];
+    newNombres[idx] = nombre;
+    setState({ estudiantesNombres: newNombres });
+    const tab = document.getElementById('stuTab_' + idx);
+    if (tab) tab.title = nombre;
   });
 }
 
@@ -207,12 +271,12 @@ export function abrirLightbox(src, nombre) {
   lb.onclick = e => {
     if (e.target === lb) cerrarLightbox();
   };
-  lb.innerHTML = `
-    <button class="lightbox-close" onclick="cerrarLightbox()">x</button>
-    <img class="lightbox-img" src="${src}" alt="${nombre}" />
-    <div class="lightbox-caption">${nombre}</div>`;
+  lb.innerHTML = '<button class="lightbox-close" id="lightboxClose">x</button>' +
+    '<img class="lightbox-img" src="' + src + '" alt="' + nombre + '" />' +
+    '<div class="lightbox-caption">' + nombre + '</div>';
   document.body.appendChild(lb);
   document.body.style.overflow = 'hidden';
+  document.getElementById('lightboxClose').onclick = () => cerrarLightbox();
 }
 
 export function cerrarLightbox() {
@@ -297,11 +361,10 @@ export function renderPesoSummary() {
     const actRow = document.querySelector('#step2 .actions-row');
     actRow.parentNode.insertBefore(el, actRow);
   }
-  el.innerHTML = `
-    <span class="${cls}">${msg}</span>
-    <span style="color:var(--muted)">Suma actual: <strong style="color:var(--text)">${totalRounded.toFixed(4)}</strong></span>
-    <button style="margin-left:auto;padding:5px 14px;font-size:0.72rem;" class="btn-ghost"
-      onclick="distribuirPesosIgual()">Restablecer</button>`;
+  el.innerHTML = '<span class="' + cls + '">' + msg + '</span>' +
+    '<span style="color:var(--muted)">Suma actual: <strong style="color:var(--text)">' + totalRounded.toFixed(4) + '</strong></span>' +
+    '<button style="margin-left:auto;padding:5px 14px;font-size:0.72rem;" class="btn-ghost" id="pesoResetBtn">Restablecer</button>';
+  document.getElementById('pesoResetBtn').onclick = () => distribuirPesosIgual();
 }
 
 export function distribuirPesosIgual() {
@@ -319,4 +382,51 @@ export function distribuirPesosIgual() {
   }
   renderPesoSummary();
   window.toast('Pesos restablecidos');
+}
+
+export function handleStudentKey(e) {
+  const key = e.key.toUpperCase();
+  const opts = ['A', 'B', 'C', 'D'];
+  const { currentStudent, numE, numP, estudiantesCalificados } = getState();
+
+  if (estudiantesCalificados[currentStudent]) return;
+
+  if (key === 'ARROWLEFT' || key === 'PAGEUP') {
+    if (currentStudent > 0) {
+      loadStudent(currentStudent - 1);
+    }
+    e.preventDefault();
+  } else if (key === 'ARROWRIGHT' || key === 'PAGEDOWN') {
+    if (currentStudent < numE - 1) {
+      loadStudent(currentStudent + 1);
+    }
+    e.preventDefault();
+  } else if (opts.includes(key)) {
+    const grid = document.getElementById('stuGrid');
+    const firstUnanswered = Array.from(grid.querySelectorAll('.answer-item')).findIndex(item => {
+      const optsDiv = item.querySelector('.options');
+      return !optsDiv.querySelector('.selected');
+    });
+    if (firstUnanswered >= 0) {
+      const btn = document.getElementById('stu_q' + firstUnanswered)?.querySelector('.opt-btn:nth-of-type(' + (opts.indexOf(key) + 1) + ')');
+      if (btn) selRespEstu(firstUnanswered, key, btn);
+    } else {
+      const lastItem = document.getElementById('stu_q' + (numP - 1));
+      const btn = lastItem?.querySelector('.opt-btn:nth-of-type(' + (opts.indexOf(key) + 1) + ')');
+      if (btn) selRespEstu(numP - 1, key, btn);
+    }
+    e.preventDefault();
+  } else if (key === 'ENTER') {
+    calificarEstudiante();
+    if (currentStudent < numE - 1) {
+      loadStudent(currentStudent + 1);
+    }
+    e.preventDefault();
+  } else if (key === 'HOME') {
+    loadStudent(0);
+    e.preventDefault();
+  } else if (key === 'END') {
+    loadStudent(numE - 1);
+    e.preventDefault();
+  }
 }

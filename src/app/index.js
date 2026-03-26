@@ -1,16 +1,19 @@
-import { abrirDB, dbGuardar, dbListar, dbEliminar } from '../db/indexedDB.js';
+import { abrirDB, dbGuardar, dbListar, dbEliminar, dbObtenerSettings, dbGuardarSettings } from '../db/indexedDB.js';
 import { dbGuardarBorrador, dbObtenerBorrador, dbEliminarBorrador } from '../db/draft.js';
 import { dbGuardarFoto, dbObtenerFoto, dbEliminarFotosByEval } from '../db/photos.js';
 import { getState, setState } from './state.js';
-import { pesoTotal, calcNota, notaMinima } from './calification.js';
-import { irPaso2, selClave, actualizarPeso, irPaso3, irPaso4, setStep, metaHTML, reiniciar } from './steps.js';
-import { buildStudentNav, loadStudent, renderFotoZoneHTML, bindFotoZone, procesarFoto, eliminarFoto, abrirLightbox, cerrarLightbox, selRespEstu, calificarEstudiante, renderDraftProgress, renderPesoSummary, distribuirPesosIgual } from './render.js';
-import { showView, toast, renderHistorial, mostrarResumen, pedirBorrar, cerrarModal, confirmarBorrar } from './views.js';
+import { pesoTotal, calcNota, notaMinima, notaMaxima, notaAprobacion } from './calification.js';
+import { irPaso2, selClave, actualizarPeso, bindPaso2Events, irPaso3, irPaso4, setStep, metaHTML, reiniciar } from './steps.js';
+import { buildStudentNav, loadStudent, renderFotoZoneHTML, bindFotoZone, bindStuNameInput, bindPaso3Events, procesarFoto, eliminarFoto, abrirLightbox, cerrarLightbox, selRespEstu, calificarEstudiante, renderDraftProgress, renderPesoSummary, distribuirPesosIgual, handleStudentKey } from './render.js';
+import { showView, toast, renderHistorial, mostrarResumen, pedirBorrar, cerrarModal, confirmarBorrar, abrirModalSettings, cerrarModalSettings, guardarSettings, cargarSettings, exportarCSV, escapeHtml } from './views.js';
+import { bindHtmlEvents } from './bindHtmlEvents.js';
 
 window.abrirDB = abrirDB;
 window.dbGuardar = dbGuardar;
 window.dbListar = dbListar;
 window.dbEliminar = dbEliminar;
+window.dbObtenerSettings = dbObtenerSettings;
+window.dbGuardarSettings = dbGuardarSettings;
 window.dbGuardarFoto = dbGuardarFoto;
 window.dbObtenerFoto = dbObtenerFoto;
 window.dbEliminarFotosByEval = dbEliminarFotosByEval;
@@ -20,6 +23,8 @@ window.dbEliminarBorrador = dbEliminarBorrador;
 
 window.irPaso2 = irPaso2;
 window.selClave = selClave;
+window.actualizarPeso = actualizarPeso;
+window.bindPaso2Events = bindPaso2Events;
 window.actualizarPeso = actualizarPeso;
 window.irPaso3 = irPaso3;
 window.irPaso4 = irPaso4;
@@ -31,6 +36,8 @@ window.buildStudentNav = buildStudentNav;
 window.loadStudent = loadStudent;
 window.renderFotoZoneHTML = renderFotoZoneHTML;
 window.bindFotoZone = bindFotoZone;
+window.bindStuNameInput = bindStuNameInput;
+window.bindPaso3Events = bindPaso3Events;
 window.procesarFoto = procesarFoto;
 window.eliminarFoto = eliminarFoto;
 window.abrirLightbox = abrirLightbox;
@@ -40,6 +47,7 @@ window.calificarEstudiante = calificarEstudiante;
 window.renderDraftProgress = renderDraftProgress;
 window.renderPesoSummary = renderPesoSummary;
 window.distribuirPesosIgual = distribuirPesosIgual;
+window.handleStudentKey = handleStudentKey;
 
 window.showView = showView;
 window.toast = toast;
@@ -52,6 +60,14 @@ window.confirmarBorrar = confirmarBorrar;
 window.calcNota = calcNota;
 window.pesoTotal = pesoTotal;
 window.notaMinima = notaMinima;
+window.notaMaxima = notaMaxima;
+window.notaAprobacion = notaAprobacion;
+
+window.abrirModalSettings = abrirModalSettings;
+window.cerrarModalSettings = cerrarModalSettings;
+window.guardarSettings = guardarSettings;
+window.exportarCSV = exportarCSV;
+window.escapeHtml = escapeHtml;
 
 window.setPesoMode = function(mode) {
   setState({ pesoMode: mode });
@@ -145,10 +161,12 @@ window.renderDetEstudiante = async function(idx) {
     if (resp[i] === clave[i]) sumaPesos += pesos[i];
   }
   const notaBruta = evCalif === '0a5' ? sumaPesos : 1 + sumaPesos;
-  const nota = Math.min(5, Math.max(evNotaMin, notaBruta));
+  const evMaxNota = ev.notaMaxima || 5;
+  const nota = Math.min(evMaxNota, Math.max(evNotaMin, notaBruta));
   const aciertos = resp.filter((r, i) => r === clave[i]).length;
   const pct = ((aciertos / ev.numP) * 100).toFixed(0);
-  const barColor = nota >= 3 ? 'var(--green)' : nota >= 2 ? 'var(--accent)' : 'var(--red)';
+  const notaAprueba = ev.notaAprobacion || 3;
+  const barColor = nota >= notaAprueba ? 'var(--green)' : nota >= notaAprueba - 1 ? 'var(--accent)' : 'var(--red)';
 
   document.getElementById('detNombre').textContent = nombre;
   document.getElementById('detMeta').innerHTML = `
@@ -163,7 +181,7 @@ window.renderDetEstudiante = async function(idx) {
     <div class="result-bar-wrap" style="width:80px;margin:8px auto 4px;">
       <div class="result-bar" style="width:${pct}%;background:${barColor};"></div>
     </div>
-    <div class="modal-det-nota-sub">${nota >= 3 ? 'Aprobo' : 'Reprobo'}</div>`;
+    <div class="modal-det-nota-sub">${nota >= notaAprueba ? 'Aprobo' : 'Reprobo'}</div>`;
 
   const grid = document.getElementById('detRespGrid');
   grid.innerHTML = '';
@@ -237,8 +255,10 @@ window.renderDetNav = function() {
       if (resp[j] === clave[j]) suma += pesos[j];
     }
     const notaBruta = evCalif === '0a5' ? suma : 1 + suma;
-    const nota = Math.min(5, Math.max(evNotaMin, notaBruta));
-    const aprobado = nota >= 3;
+    const evMaxNota = ev.notaMaxima || 5;
+    const nota = Math.min(evMaxNota, Math.max(evNotaMin, notaBruta));
+    const notaAprueba = ev.notaAprobacion || 3;
+    const aprobado = nota >= notaAprueba;
     const hasFoto = ev.fotosMeta && ev.fotosMeta[i];
     const btn = document.createElement('button');
     btn.className = `det-stu-btn ${aprobado ? 'det-aprobado' : 'det-reprobado'}${i === window.detIdx ? ' det-active' : ''}`;
@@ -297,8 +317,8 @@ window.verificarBorrador = async function() {
     const calificados = (draft.estudiantesCalificados || []).filter(Boolean).length;
     const savedAt = new Date(draft.savedAt).toLocaleString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     document.getElementById('recoveryMeta').innerHTML = `
-      <span><strong>${draft.evalMeta?.nombre || '-'}</strong></span>
-      <span class="periodo-pill">Periodo ${draft.evalMeta?.periodo || '-'}</span>
+      <span><strong>${escapeHtml(draft.evalMeta?.nombre) || '-'}</strong></span>
+      <span class="periodo-pill">Periodo ${escapeHtml(draft.evalMeta?.periodo) || '-'}</span>
       <span>${fechaLocal}</span>
       <span>${draft.numP} preguntas</span>
       <span>${draft.numE} estudiantes</span>
@@ -401,5 +421,9 @@ window.guardarEvaluacion = async function() {
 };
 
 abrirDB()
-  .then(() => window.verificarBorrador())
+  .then(async () => {
+    bindHtmlEvents();
+    await cargarSettings();
+    window.verificarBorrador();
+  })
   .catch(e => toast('No se pudo inicializar la base de datos: ' + e.message, true));

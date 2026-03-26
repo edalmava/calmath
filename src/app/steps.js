@@ -1,6 +1,7 @@
 import { getState, setState } from './state.js';
-import { pesoTotal } from './calification.js';
+import { pesoTotal, notaAprobacion, notaMaxima } from './calification.js';
 import { renderPesoSummary, buildStudentNav, loadStudent, renderDraftProgress } from './render.js';
+import { escapeHtml } from './views.js';
 
 export function setStep(n) {
   [1, 2, 3, 4].forEach(i => document.getElementById(`step${i}`).classList.toggle('hidden', i !== n));
@@ -25,8 +26,8 @@ export function metaHTML() {
     ? '<span style="color:var(--accent)">0-5</span>'
     : '<span style="color:var(--accent)">1-5</span>';
   return `
-    <strong>${evalMeta.nombre}</strong>
-    <span class="periodo-pill">Periodo ${evalMeta.periodo}</span>
+    <strong>${escapeHtml(evalMeta.nombre)}</strong>
+    <span class="periodo-pill">Periodo ${escapeHtml(evalMeta.periodo)}</span>
     <span>${fechaLocal}</span>
     <span>${numP} preguntas</span>
     <span>${numE} estudiantes</span>
@@ -53,8 +54,12 @@ export function irPaso2() {
     alert('Selecciona el periodo academico.');
     return;
   }
-  if (!numP || numP < 1 || !numE || numE < 1) {
-    alert('Ingresa valores validos para preguntas y estudiantes.');
+  if (!numP || numP < 1 || numP > 100) {
+    alert('El numero de preguntas debe estar entre 1 y 100.');
+    return;
+  }
+  if (!numE || numE < 1 || numE > 200) {
+    alert('El numero de estudiantes debe estar entre 1 y 200.');
     return;
   }
 
@@ -98,23 +103,42 @@ export function irPaso2() {
         <label style="font-size:0.63rem;margin-bottom:3px;">Valor (puntos)</label>
         <input type="number" class="peso-input" id="peso_q${i}"
           min="0" max="${pt}" step="0.0001"
-          value="${pesoDefault}"
-          oninput="actualizarPeso(${i},this)" />
+          value="${pesoDefault}" />
       </div>` : '';
     item.innerHTML = `<div class="q-num">Pregunta ${i + 1}</div>
       <div class="options" id="clave_q${i}">
-        ${['A', 'B', 'C', 'D'].map(o => `<button class="opt-btn" onclick="selClave(${i},'${o}',this)">${o}</button>`).join('')}
+        ${['A', 'B', 'C', 'D'].map(o => '<button class="opt-btn">' + o + '</button>').join('')}
       </div>${pesoField}`;
     grid.appendChild(item);
   }
 
   document.getElementById('metaBanner2').innerHTML = metaHTML();
   renderPesoSummary();
+  bindPaso2Events();
   setStep(2);
 }
 
+export function bindPaso2Events() {
+  const claveGrid = document.getElementById('claveGrid');
+  if (!claveGrid) return;
+  claveGrid.querySelectorAll('.opt-btn').forEach(btn => {
+    btn.onclick = () => {
+      const match = btn.textContent.match(/^([A-D])$/);
+      if (!match) return;
+      const qi = parseInt(btn.closest('.answer-item').id.replace('clave_q', ''));
+      window.selClave(qi, match[1], btn);
+    };
+  });
+  claveGrid.querySelectorAll('.peso-input').forEach(inp => {
+    inp.oninput = () => {
+      const qi = parseInt(inp.id.replace('peso_q', ''));
+      window.actualizarPeso(qi, inp);
+    };
+  });
+}
+
 export function selClave(qi, opt, btn) {
-  document.getElementById(`clave_q${qi}`).querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('clave_q' + qi).querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
   const { claveRespuestas } = getState();
   const newClave = [...claveRespuestas];
@@ -175,13 +199,15 @@ export function irPaso4() {
       if (resp_i[j] === claveRespuestas[j]) sumaPesos += pesosPreguntas[j];
     }
     const notaBruta = sistemaCalif === '0a5' ? sumaPesos : 1 + sumaPesos;
-    const nota = Math.min(5, Math.max(sistemaCalif === '0a5' ? 0 : 1, notaBruta));
+    const maxNota = notaMaxima();
+    const nota = Math.min(maxNota, Math.max(sistemaCalif === '0a5' ? 0 : 1, notaBruta));
     const aciertos = resp_i.filter((r, j) => r === claveRespuestas[j]).length;
     const errores = numP - aciertos;
-    const aprobado = nota >= 3;
+    const notaAprueba = notaAprobacion();
+    const aprobado = nota >= notaAprueba;
     totalNota += nota;
     if (aprobado) aprobados++;
-    const barColor = nota >= 3 ? 'var(--green)' : nota >= 2 ? 'var(--accent)' : 'var(--red)';
+    const barColor = nota >= notaAprueba ? 'var(--green)' : nota >= notaAprueba - 1 ? 'var(--accent)' : 'var(--red)';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="color:var(--muted)">${i + 1}</td>
