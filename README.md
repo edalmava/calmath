@@ -2,7 +2,7 @@
 
 Aplicación web vanilla JavaScript para gestionar y calificar evaluaciones tipo ICFES con preguntas de selección múltiple (única respuesta). Utiliza IndexedDB para persistencia local.
 
-适用于任何学科的ICFES风格评估管理，支持选择题唯一答案评估。No solo para matemáticas — funciona para cualquier área: español, ciencias, historia, biología, física, química, etc.
+No solo para matemáticas — funciona para cualquier área: español, ciencias, historia, biología, física, química, etc.
 
 ## Características
 
