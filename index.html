@@ -3,8 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self';">
+  <meta name="theme-color" content="#f0c040">
+  <meta name="description" content="EvalMath - Gestor de Evaluaciones Estilo ICFES">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self';">
   <meta name="referrer" content="strict-origin-when-cross-origin">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/icon.svg">
   <title>EvalMath — Gestor ICFES</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/styles.css">
@@ -33,6 +37,15 @@
     <div class="card">
       <div class="card-title">Historial de evaluaciones</div>
       <div class="card-desc">Evaluaciones guardadas localmente en este dispositivo mediante IndexedDB.</div>
+      <div class="hist-filters">
+        <input type="text" id="histFilterNombre" placeholder="Buscar por nombre..." />
+        <select id="histFilterPeriodo">
+          <option value="">Todos los periodos</option>
+        </select>
+        <input type="date" id="histFilterFecha" />
+        <button class="btn btn-ghost" id="histClearFilters" style="padding:6px 12px;font-size:0.7rem;">Limpiar</button>
+      </div>
+      <div class="hist-count" id="histCount"></div>
       <div style="margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
         <label class="btn btn-secondary" style="cursor:pointer;">
           Importar CSV
@@ -50,7 +63,10 @@
   <main>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
       <button class="rsm-back" id="rsmBackBtn">Volver al historial</button>
-      <button class="btn btn-secondary" id="rsmExportBtn">Exportar CSV</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" id="rsmPdfBtn">Exportar PDF</button>
+        <button class="btn btn-secondary" id="rsmExportBtn">Exportar CSV</button>
+      </div>
     </div>
     <div class="card">
       <div id="rsmHeader"></div>
@@ -182,6 +198,7 @@
     <div id="statsBlock" style="margin-top:20px;display:flex;gap:12px;flex-wrap:wrap;"></div>
     <div class="actions-row">
       <button class="btn btn-primary" id="step4SaveBtn">Guardar evaluacion</button>
+      <button class="btn btn-secondary" id="step4PdfBtn">Exportar PDF</button>
       <button class="btn btn-secondary" id="step4NewBtn">Nueva evaluacion</button>
     </div>
   </div>
@@ -295,6 +312,17 @@
   </div>
 </div>
 
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then(registration => {
+        console.log('SW registered:', registration.scope);
+      }).catch(error => {
+        console.log('SW registration failed:', error);
+      });
+    });
+  }
+</script>
 <script type="module" src="/src/app/index.js"></script>
 
 </body>

@@ -4,13 +4,43 @@ import { renderPesoSummary, buildStudentNav, loadStudent, renderDraftProgress } 
 import { escapeHtml } from './views.js';
 
 export function setStep(n) {
-  [1, 2, 3, 4].forEach(i => document.getElementById(`step${i}`).classList.toggle('hidden', i !== n));
+  const currentStep = document.querySelector('#appView main .card:not(.hidden)');
+  if (currentStep) {
+    currentStep.classList.add('step-transition');
+  }
+  
+  [1, 2, 3, 4].forEach(i => {
+    const stepEl = document.getElementById(`step${i}`);
+    if (i === n) {
+      stepEl.classList.remove('hidden');
+      stepEl.classList.add('step-transition');
+    } else {
+      stepEl.classList.add('hidden');
+      stepEl.classList.remove('step-transition');
+    }
+  });
+  
   [1, 2, 3, 4].forEach(i => {
     const dot = document.getElementById(`dot${i}`);
     if (dot) {
       dot.className = 'step-dot' + (i < n ? ' done' : i === n ? ' active' : '');
     }
   });
+
+  if (n === 1) {
+    const { evalMeta, numP, numE, pesoMode, sistemaCalif } = getState();
+    if (evalMeta?.nombre) {
+      document.getElementById('nombrePrueba').value = evalMeta.nombre || '';
+      document.getElementById('fechaPrueba').value = evalMeta.fecha || '';
+      document.getElementById('periodoSel').value = evalMeta.periodo || '';
+      document.getElementById('numPreguntas').value = numP || '';
+      document.getElementById('numEstudiantes').value = numE || '';
+      document.getElementById('btnPesoIgual').classList.toggle('pm-active', pesoMode === 'igual');
+      document.getElementById('btnPesoDif').classList.toggle('pm-active', pesoMode === 'diferente');
+      document.getElementById('btnCalif1a5').classList.toggle('pm-active', sistemaCalif === '1a5');
+      document.getElementById('btnCalif0a5').classList.toggle('pm-active', sistemaCalif === '0a5');
+    }
+  }
 }
 
 export function metaHTML() {

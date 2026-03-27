@@ -5,6 +5,7 @@ export function bindHtmlEvents() {
 
   document.getElementById('rsmBackBtn').onclick = () => window.showView('historial');
   document.getElementById('rsmExportBtn').onclick = () => window.exportarCSV();
+  document.getElementById('rsmPdfBtn').onclick = () => window.exportarPDF();
 
   document.getElementById('btnPesoIgual').onclick = () => window.setPesoMode('igual');
   document.getElementById('btnPesoDif').onclick = () => window.setPesoMode('diferente');
@@ -15,6 +16,7 @@ export function bindHtmlEvents() {
   document.getElementById('step2ContinueBtn').onclick = () => window.irPaso3();
   document.getElementById('step2BackBtn').onclick = () => window.setStep(1);
   document.getElementById('step4SaveBtn').onclick = () => window.guardarEvaluacion();
+  document.getElementById('step4PdfBtn').onclick = () => window.exportarPDF();
   document.getElementById('step4NewBtn').onclick = () => window.reiniciar();
 
   document.getElementById('modalDet').onclick = (e) => window.cerrarModalDet(e);

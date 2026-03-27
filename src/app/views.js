@@ -1,5 +1,6 @@
 import { getState, setState } from './state.js';
 import { reiniciar } from './steps.js';
+import { jsPDF } from 'jspdf';
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -45,16 +46,44 @@ export async function renderHistorial() {
   const lista = document.getElementById('histList');
   lista.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;padding:16px 0;">Cargando historial...</div>';
   try {
-    const evals = await window.dbListar();
+    let evals = await window.dbListar();
     if (!evals.length) {
       lista.innerHTML = '<div class="hist-empty">' +
         '<div class="hist-icon">📂</div>' +
         'Aun no hay evaluaciones guardadas.' +
         '</div>';
+      poblarPeriodosFiltro([]);
       return;
     }
+
+    const filterNombre = document.getElementById('histFilterNombre')?.value?.toLowerCase().trim() || '';
+    const filterPeriodo = document.getElementById('histFilterPeriodo')?.value || '';
+    const filterFecha = document.getElementById('histFilterFecha')?.value || '';
+
+    if (filterNombre || filterPeriodo || filterFecha) {
+      evals = evals.filter(ev => {
+        const matchNombre = !filterNombre || (ev.nombre && ev.nombre.toLowerCase().includes(filterNombre));
+        const matchPeriodo = !filterPeriodo || ev.periodo === filterPeriodo;
+        const matchFecha = !filterFecha || ev.fecha === filterFecha;
+        return matchNombre && matchPeriodo && matchFecha;
+      });
+    }
+
     evals.sort((a, b) => new Date(b.guardadoEn) - new Date(a.guardadoEn));
+    poblarPeriodosFiltro(evals);
+    
+    const countInfo = document.getElementById('histCount');
+    if (countInfo) countInfo.textContent = `Mostrando ${evals.length} de ${(await window.dbListar()).length} evaluaciones`;
+    
     lista.innerHTML = '';
+    if (!evals.length) {
+      lista.innerHTML = '<div class="hist-empty">' +
+        '<div class="hist-icon">🔍</div>' +
+        'No se encontraron evaluaciones con los filtros seleccionados.' +
+        '</div>';
+      return;
+    }
+
     evals.forEach(ev => {
       const { appSettings } = getState();
       const notaAprueba = appSettings?.notaAprobacion ?? 3;
@@ -89,9 +118,58 @@ export async function renderHistorial() {
       lista.appendChild(card);
     });
     bindHistorialEvents(evals);
+    bindHistorialFilters();
   } catch (e) {
     lista.innerHTML = '<div style="color:var(--red);padding:16px 0;">Error al cargar historial: ' + e.message + '</div>';
   }
+}
+
+function poblarPeriodosFiltro(evals) {
+  const select = document.getElementById('histFilterPeriodo');
+  if (!select) return;
+  const periodosUnicos = [...new Set(evals.map(ev => ev.periodo).filter(Boolean))].sort();
+  const currentValue = select.value;
+  select.innerHTML = '<option value="">Todos los periodos</option>';
+  periodosUnicos.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p;
+    opt.textContent = 'Periodo ' + p;
+    select.appendChild(opt);
+  });
+  select.value = currentValue;
+}
+
+function bindHistorialFilters() {
+  const nombreInput = document.getElementById('histFilterNombre');
+  const periodoSelect = document.getElementById('histFilterPeriodo');
+  const fechaInput = document.getElementById('histFilterFecha');
+  const clearBtn = document.getElementById('histClearFilters');
+
+  if (nombreInput) {
+    nombreInput.oninput = debounce(() => renderHistorial(), 300);
+  }
+  if (periodoSelect) {
+    periodoSelect.onchange = () => renderHistorial();
+  }
+  if (fechaInput) {
+    fechaInput.onchange = () => renderHistorial();
+  }
+  if (clearBtn) {
+    clearBtn.onclick = () => {
+      if (nombreInput) nombreInput.value = '';
+      if (periodoSelect) periodoSelect.value = '';
+      if (fechaInput) fechaInput.value = '';
+      renderHistorial();
+    };
+  }
+}
+
+function debounce(fn, delay) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn.apply(this, args), delay);
+  };
 }
 
 function bindHistorialEvents(evals) {
@@ -211,6 +289,9 @@ export async function mostrarResumen(id) {
       return `<div style="flex:1;min-width:80px;text-align:center;">
         <div style="font-size:0.68rem;color:var(--muted);margin-bottom:4px;">P${a.pregunta}</div>
         <div style="font-size:1.1rem;font-weight:700;color:${color};">${a.porcentaje}%</div>
+        <div style="width:100%;height:5px;background:var(--border);border-radius:3px;margin:4px 0;overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:${color};border-radius:3px;"></div>
+        </div>
         <div style="font-size:0.6rem;color:var(--muted);">${a.aciertos}/${ev.numE}</div>
       </div>`;
     }).join('');
@@ -227,14 +308,38 @@ export async function mostrarResumen(id) {
     const pctB = ((d.B / ev.numE) * 100).toFixed(0);
     const pctC = ((d.C / ev.numE) * 100).toFixed(0);
     const pctD = ((d.D / ev.numE) * 100).toFixed(0);
-    return '<div style="margin-bottom:12px;padding:8px;background:var(--bg-alt);border-radius:6px;">' +
-            '<div style="font-size:0.75rem;font-weight:600;margin-bottom:6px;">Pregunta ' + d.pregunta + ' (clave: <span style="color:var(--green);font-weight:700;">' + d.clave + '</span>)</div>' +
-            '<div style="display:flex;gap:16px;font-size:0.7rem;">' +
-            '<span><span style="color:var(--green);font-weight:700;">A</span>: ' + d.A + ' (' + pctA + '%)</span>' +
-            '<span><span style="color:var(--red);font-weight:700;">B</span>: ' + d.B + ' (' + pctB + '%)</span>' +
-            '<span><span style="color:var(--accent);font-weight:700;">C</span>: ' + d.C + ' (' + pctC + '%)</span>' +
-            '<span><span style="color:var(--accent2);font-weight:700;">D</span>: ' + d.D + ' (' + pctD + '%)</span>' +
-            '</div></div>';
+    const maxVal = Math.max(d.A, d.B, d.C, d.D, 1);
+    return '<div style="margin-bottom:14px;padding:10px;background:var(--bg);border-radius:6px;border:1px solid var(--border);">' +
+            '<div style="font-size:0.76rem;font-weight:600;margin-bottom:10px;">Pregunta ' + d.pregunta + ' <span style="color:var(--muted);font-weight:400;">(clave: <span style="color:var(--green);font-weight:700;">' + d.clave + '</span>)</span></div>' +
+            '<div style="display:flex;gap:12px;align-items:center;margin-bottom:6px;">' +
+              '<span style="width:14px;font-size:0.7rem;color:var(--green);font-weight:700;">A</span>' +
+              '<div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">' +
+                '<div style="width:' + (d.A / maxVal * 100) + '%;height:100%;background:var(--green);border-radius:3px;"></div>' +
+              '</div>' +
+              '<span style="width:38px;font-size:0.65rem;color:var(--muted);text-align:right;">' + d.A + ' (' + pctA + '%)</span>' +
+            '</div>' +
+            '<div style="display:flex;gap:12px;align-items:center;margin-bottom:6px;">' +
+              '<span style="width:14px;font-size:0.7rem;color:var(--red);font-weight:700;">B</span>' +
+              '<div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">' +
+                '<div style="width:' + (d.B / maxVal * 100) + '%;height:100%;background:var(--red);border-radius:3px;"></div>' +
+              '</div>' +
+              '<span style="width:38px;font-size:0.65rem;color:var(--muted);text-align:right;">' + d.B + ' (' + pctB + '%)</span>' +
+            '</div>' +
+            '<div style="display:flex;gap:12px;align-items:center;margin-bottom:6px;">' +
+              '<span style="width:14px;font-size:0.7rem;color:var(--accent);font-weight:700;">C</span>' +
+              '<div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">' +
+                '<div style="width:' + (d.C / maxVal * 100) + '%;height:100%;background:var(--accent);border-radius:3px;"></div>' +
+              '</div>' +
+              '<span style="width:38px;font-size:0.65rem;color:var(--muted);text-align:right;">' + d.C + ' (' + pctC + '%)</span>' +
+            '</div>' +
+            '<div style="display:flex;gap:12px;align-items:center;">' +
+              '<span style="width:14px;font-size:0.7rem;color:var(--accent2);font-weight:700;">D</span>' +
+              '<div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">' +
+                '<div style="width:' + (d.D / maxVal * 100) + '%;height:100%;background:var(--accent2);border-radius:3px;"></div>' +
+              '</div>' +
+              '<span style="width:38px;font-size:0.65rem;color:var(--muted);text-align:right;">' + d.D + ' (' + pctD + '%)</span>' +
+            '</div>' +
+            '</div>';
   }).join('')}
       </div>`;
 
@@ -556,4 +661,172 @@ export async function importarEvaluacion(file) {
     reader.onerror = () => reject(new Error('Error al leer el archivo'));
     reader.readAsText(file);
   });
+}
+
+export function exportarPDF() {
+  const { currentResumen } = getState();
+  if (!currentResumen) {
+    toast('No hay resumen para exportar', true);
+    return;
+  }
+
+  const { ev, resultados, analisisPorPregunta } = currentResumen;
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  let y = margin;
+
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Resultados de Evaluación', pageWidth / 2, y, { align: 'center' });
+  y += 10;
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(escapeHtml(ev.nombre), pageWidth / 2, y, { align: 'center' });
+  y += 7;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const fechaLocal = ev.fecha
+    ? new Date(ev.fecha + 'T12:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
+    : '-';
+  const infoLine = `Periodo ${ev.periodo} | ${fechaLocal} | ${ev.numP} preguntas | ${ev.numE} estudiantes`;
+  doc.text(infoLine, pageWidth / 2, y, { align: 'center' });
+  y += 12;
+
+  const notaAprueba = ev.notaAprobacion || 3;
+  const totalNota = resultados.reduce((s, r) => s + r.nota, 0);
+  const aprobados = resultados.filter(r => r.aprobado).length;
+  const prom = (totalNota / ev.numE).toFixed(2);
+  const pctApr = ((aprobados / ev.numE) * 100).toFixed(0);
+
+  doc.setFillColor(240, 240, 240);
+  doc.rect(margin, y, pageWidth - 2 * margin, 18, 'F');
+  y += 6;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Promedio: ${prom}`, margin + 5, y);
+  doc.text(`Aprobados: ${aprobados}/${ev.numE} (${pctApr}%)`, margin + 60, y);
+  doc.text(`Nota mínima: ${notaAprueba}`, margin + 120, y);
+  y += 16;
+
+  const colWidths = [12, 65, 25, 25, 25, 30];
+  const headers = ['#', 'Estudiante', 'Aciertos', 'Errores', 'Nota', 'Estado'];
+  const startX = margin;
+
+  doc.setFillColor(30, 30, 30);
+  doc.rect(startX, y, pageWidth - 2 * margin, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  let x = startX + 2;
+  headers.forEach((h, i) => {
+    doc.text(h, x + colWidths[i] / 2, y + 5.5, { align: 'center' });
+    x += colWidths[i];
+  });
+  y += 8;
+
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'normal');
+  
+  resultados.forEach((r, i) => {
+    if (y > pageHeight - 25) {
+      doc.addPage();
+      y = margin;
+    }
+
+    const bgColor = i % 2 === 0 ? 255 : 245;
+    doc.setFillColor(bgColor, bgColor, bgColor);
+    doc.rect(startX, y, pageWidth - 2 * margin, 7, 'F');
+
+    x = startX + 2;
+    const estado = r.aprobado ? 'Aprobado' : 'Reprobado';
+    const notaColor = r.nota >= notaAprueba ? [86, 211, 100] : r.nota >= notaAprueba - 1 ? [240, 192, 64] : [248, 81, 73];
+    const estadoColor = r.aprobado ? [86, 211, 100] : [248, 81, 73];
+
+    doc.setTextColor(100, 100, 100);
+    doc.text(String(i + 1), x + colWidths[0] / 2, y + 5, { align: 'center' });
+    x += colWidths[0];
+
+    doc.setTextColor(0, 0, 0);
+    const nombreMostrar = r.nombre.length > 28 ? r.nombre.substring(0, 25) + '...' : r.nombre;
+    doc.text(nombreMostrar, x + 2, y + 5);
+    x += colWidths[1];
+
+    doc.setTextColor(86, 211, 100);
+    doc.text(String(r.aciertos), x + colWidths[2] / 2, y + 5, { align: 'center' });
+    x += colWidths[2];
+
+    doc.setTextColor(248, 81, 73);
+    const errores = ev.numP - r.aciertos;
+    doc.text(String(errores), x + colWidths[3] / 2, y + 5, { align: 'center' });
+    x += colWidths[3];
+
+    doc.setTextColor(notaColor[0], notaColor[1], notaColor[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.text(r.nota.toFixed(1), x + colWidths[4] / 2, y + 5, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    x += colWidths[4];
+
+    doc.setTextColor(estadoColor[0], estadoColor[1], estadoColor[2]);
+    doc.text(estado, x + colWidths[5] / 2, y + 5, { align: 'center' });
+
+    y += 7;
+  });
+
+  y += 10;
+  if (y > pageHeight - 40) {
+    doc.addPage();
+    y = margin;
+  }
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Análisis por Pregunta', margin, y);
+  y += 7;
+
+  doc.setFillColor(30, 30, 30);
+  doc.rect(margin, y, pageWidth - 2 * margin, 7, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Pregunta', margin + 5, y + 5);
+  doc.text('Aciertos', margin + 35, y + 5);
+  doc.text('%', margin + 55, y + 5);
+  doc.text('Pregunta', margin + 75, y + 5);
+  doc.text('Aciertos', margin + 105, y + 5);
+  doc.text('%', margin + 125, y + 5);
+  y += 7;
+
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'normal');
+
+  const half = Math.ceil(analisisPorPregunta.length / 2);
+  for (let i = 0; i < half; i++) {
+    if (y > pageHeight - 20) {
+      doc.addPage();
+      y = margin;
+    }
+
+    const left = analisisPorPregunta[i];
+    const right = analisisPorPregunta[i + half];
+
+    doc.text(String(left.pregunta), margin + 5, y + 4);
+    doc.text(String(left.aciertos), margin + 35, y + 4);
+    doc.text(left.porcentaje + '%', margin + 55, y + 4);
+
+    if (right) {
+      doc.text(String(right.pregunta), margin + 75, y + 4);
+      doc.text(String(right.aciertos), margin + 105, y + 4);
+      doc.text(right.porcentaje + '%', margin + 125, y + 4);
+    }
+
+    y += 6;
+  }
+
+  const safeName = ev.nombre.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ]/g, '_');
+  doc.save(`${safeName}_resultados.pdf`);
+  toast('PDF descargado correctamente');
 }

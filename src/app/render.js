@@ -310,6 +310,19 @@ export function calificarEstudiante() {
   loadStudent(currentStudent);
   renderDraftProgress();
   window.autoguardarBorrador();
+  
+  const state = getState();
+  if (state.estudiantesCalificados.every(Boolean)) {
+    const actionsRow = document.querySelector('#studentPanel .actions-row');
+    if (actionsRow && !document.getElementById('resumenBtn')) {
+      const btn = document.createElement('button');
+      btn.id = 'resumenBtn';
+      btn.className = 'btn btn-primary';
+      btn.textContent = 'Ver resumen';
+      btn.onclick = () => window.irPaso4();
+      actionsRow.appendChild(btn);
+    }
+  }
 }
 
 export function renderDraftProgress() {

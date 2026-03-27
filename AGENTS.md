@@ -1,21 +1,21 @@
 # EvalMath - Agent Development Guide
 
-Vanilla JavaScript app for managing and grading ICFES-style multiple choice evaluations (any subject). Uses IndexedDB with draft auto-save and exam photo attachments.
+Vanilla JavaScript app for managing and grading ICFES-style multiple choice evaluations. Uses IndexedDB with draft auto-save, photo attachments, PDF export, and PWA support.
 
 ## Commands
 
 ```bash
-# Install
+# Install dependencies
 npm install
 
-# Dev/Build
+# Development
 npm run dev              # Dev server (port 3000)
-npm run build            # Production build to dist/
-npm run preview          # Preview production build
+npm run build           # Production build to dist/
+npm run preview         # Preview production build (port 4173)
 
 # Linting
-npm run lint             # Run ESLint
-npm run lint:fix         # Auto-fix ESLint issues
+npm run lint            # Run ESLint
+npm run lint:fix        # Auto-fix ESLint issues
 
 # Testing
 npm run test             # Run all tests once
@@ -33,27 +33,27 @@ npx vitest run -t "calculates correct grade"
 
 ```
 calmath/
-├── index.html                    # Entry point
-├── package.json                  # Dependencies + scripts
-├── vite.config.js                # Vite config
-├── eslint.config.js              # ESLint config
+├── index.html              # Entry point + CSP headers
+├── package.json            # Dependencies + scripts
+├── vite.config.js          # Vite + PWA config
+├── public/                 # Static assets (icon.svg)
 ├── src/
-│   ├── styles.css                 # All styles
+│   ├── styles.css          # All styles
 │   ├── app/
-│   │   ├── index.js               # Entry + exports to window
-│   │   ├── state.js               # Global state (getState/setState)
-│   │   ├── calification.js        # calcNota, calcAciertos, pesoTotal
-│   │   ├── steps.js               # irPaso2, irPaso3, irPaso4, setStep
-│   │   ├── render.js              # DOM rendering + bindPaso3Events
-│   │   ├── views.js               # Views + modals + escapeHtml
-│   │   └── bindHtmlEvents.js      # Event binding for CSP compliance
+│   │   ├── index.js        # Entry + exports to window
+│   │   ├── state.js        # Global state (getState/setState)
+│   │   ├── calification.js # calcNota, calcAciertos, pesoTotal
+│   │   ├── steps.js       # irPaso2, irPaso3, irPaso4, setStep
+│   │   ├── render.js      # DOM rendering + bindPaso3Events
+│   │   ├── views.js       # Views + modals + escapeHtml + PDF export
+│   │   └── bindHtmlEvents.js # Event binding for CSP
 │   └── db/
-│       ├── indexedDB.js           # Core DB (abrirDB, dbGuardar, dbListar)
-│       ├── draft.js                # dbGuardarBorrador, dbObtenerBorrador
-│       └── photos.js              # dbGuardarFoto, dbObtenerFoto
+│       ├── indexedDB.js     # Core DB (abrirDB, dbGuardar, dbListar)
+│       ├── draft.js        # dbGuardarBorrador, dbObtenerBorrador
+│       └── photos.js       # dbGuardarFoto, dbObtenerFoto
 └── tests/
-    ├── app.test.js                # Calc logic tests
-    └── db.test.js                 # DB helper tests
+    ├── app.test.js         # Calc logic tests
+    └── db.test.js          # DB helper tests
 ```
 
 ## Code Style
@@ -62,9 +62,9 @@ calmath/
 - **Vanilla JS only** - No frameworks. Use browser APIs directly.
 - **ES Modules** - Use `import`/`export`.
 - **Single Responsibility** - Each module has focused purpose.
-- **Use function declarations**, not arrow functions at top level
+- **Use function declarations** at top level, not arrow functions.
 - Arrow functions OK for callbacks: `arr.map(x => x * 2)`
-- Keep functions under 50 lines
+- Keep functions under 50 lines.
 
 ### Naming Conventions
 
@@ -86,14 +86,14 @@ setState({ numP: 20 });
 ```
 
 ### HTML Generation
-- Use template literals with backticks
-- Always escape user input: use `escapeHtml(str)` from views.js
-- Use string concatenation instead of template literals for simple values
+- Use template literals with backticks.
+- Always escape user input: use `escapeHtml(str)` from views.js.
+- Use string concatenation for simple values.
 
 ### IndexedDB
-- All operations return Promises
-- Wrap in try/catch
-- Use helpers from `src/db/`
+- All operations return Promises.
+- Wrap in try/catch.
+- Use helpers from `src/db/`.
 
 ```javascript
 try {
@@ -104,14 +104,14 @@ try {
 ```
 
 ### CSS
-- Use CSS custom properties from `:root`
-- BEM-like naming: `.block__element--modifier`
-- Keep styles in `src/styles.css`
+- Use CSS custom properties from `:root`.
+- BEM-like naming: `.block__element--modifier`.
+- Keep styles in `src/styles.css`.
 
 ### Event Binding (CSP Compliance)
-- **Never use inline event handlers** (`onclick`, `onchange`, etc.) in HTML
-- Use `bindHtmlEvents.js` for static HTML elements
-- Use `bindPaso2Events()` and `bindPaso3Events(idx)` for dynamically generated content
+- **Never use inline event handlers** (`onclick`, `onchange`) in HTML.
+- Use `bindHtmlEvents.js` for static HTML elements.
+- Use `bindPaso2Events()` and `bindPaso3Events(idx)` for dynamic content.
 
 ```javascript
 // Bad - violates CSP
@@ -124,18 +124,17 @@ document.getElementById('myBtn').onclick = () => myFunc();
 ## Security Guidelines
 
 ### XSS Prevention
-- Always escape user-generated content with `escapeHtml(str)`
-- Never use `innerHTML` with unsanitized user input
-- Use `textContent` instead of `innerHTML` when possible
+- Always escape user-generated content with `escapeHtml(str)`.
+- Never use `innerHTML` with unsanitized user input.
+- Use `textContent` instead of `innerHTML` when possible.
 
 ### Input Validation
-- Validate all numeric inputs with parseInt/parseFloat + defaults
-- Enforce ranges: questions (1-100), students (1-200)
+- Validate all numeric inputs with parseInt/parseFloat + defaults.
+- Enforce ranges: questions (1-100), students (1-200).
 
 ### CSP
-- Content Security Policy meta tag in index.html
-- No inline event handlers - use binding functions
-- Use `'unsafe-inline'` in CSP only if absolutely necessary
+- Content Security Policy meta tag in index.html.
+- No inline event handlers - use binding functions.
 
 ## Keyboard Shortcuts (Step 3)
 
@@ -143,14 +142,14 @@ document.getElementById('myBtn').onclick = () => myFunc();
 |-----|--------|
 | `←` / `PageUp` | Previous student |
 | `→` / `PageDown` | Next student |
-| `A` / `B` / `C` / `D` | Mark answer (first unanswered or last) |
+| `A` / `B` / `C` / `D` | Mark answer |
 | `Enter` | Grade student |
 | `Home` | First student |
 | `End` | Last student |
 
 ## Testing
 
-Tests go in `tests/*.test.js`:
+Tests use Vitest in `tests/*.test.js`:
 
 ```javascript
 import { describe, it, expect } from 'vitest';
@@ -180,7 +179,6 @@ toast('Error message', true); // second arg = isError
 function irPaso2() {
   if (!valid) return;
   setState({ numP: value });
-  document.getElementById('metaBanner2').innerHTML = metaHTML();
   setStep(2);
 }
 ```
@@ -192,11 +190,6 @@ function abrirModal() {
   document.body.style.overflow = 'hidden';
 }
 ```
-
-## Error Handling
-- Wrap async operations in try/catch
-- Show user-friendly errors via `toast(msg, true)`
-- Log detailed errors to console
 
 ## API Reference
 
@@ -222,37 +215,23 @@ function abrirModal() {
 | `dbGuardarBorrador(obj)` | Saves draft |
 | `dbObtenerBorrador()` | Returns draft or null |
 
+## Features
+
+- **CSV Import/Export**: Full evaluation data with metadata for re-import.
+- **PDF Export**: Generate printable PDF reports with jsPDF.
+- **PWA**: Installable, works offline via service worker.
+- **Filters**: Search by name, filter by period/date in history.
+- **Visual Analysis**: Bar charts for question analysis and answer distribution.
+- **Auto-save**: Draft auto-save to IndexedDB while grading.
+
+## Error Handling
+- Wrap async operations in try/catch.
+- Show user-friendly errors via `toast(msg, true)`.
+- Log detailed errors to console.
+
 ## Notes
-- No frameworks - pure vanilla JavaScript
-- IndexedDB persistence (evaluations, drafts, photos, settings)
-- Offline capable after first load
-- Photos stored as Blobs in IndexedDB
-- CSP enforced - no inline event handlers
-
-## Import/Export CSV
-
-### Export Format
-The CSV export includes metadata for re-importation:
-
-```
-# ===== METADATA (para importacion) =====
-# Formato: EVALMATH_v1
-nombre,Parcial Algebra
-fecha,2024-03-15
-periodo,2
-numP,20
-numE,30
-sistemaCalif,1a5
-notaMaxima,5
-notaAprobacion,3
-pesoMode,igual
-pesosPreguntas,0.2000,0.2000,...
-claveRespuestas,A,B,C,D,A,B,...
-
-# ===== ESTUDIANTES =====
-#num,nombre,respuestas,calificado
-1|Juan Pérez|A|B|C|D|A|No
-```
-
-### Import
-Use the "Importar CSV" button in the Historial view. The import parses the metadata section and student data, recalculates grades, and saves to IndexedDB.
+- No frameworks - pure vanilla JavaScript.
+- IndexedDB persistence (evaluations, drafts, photos, settings).
+- Offline capable after first load (PWA).
+- Photos stored as Blobs in IndexedDB.
+- CSP enforced - no inline event handlers.

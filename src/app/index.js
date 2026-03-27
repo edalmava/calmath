@@ -5,7 +5,7 @@ import { getState, setState } from './state.js';
 import { pesoTotal, calcNota, notaMinima, notaMaxima, notaAprobacion } from './calification.js';
 import { irPaso2, selClave, actualizarPeso, bindPaso2Events, irPaso3, irPaso4, setStep, metaHTML, reiniciar, importarEstudiantes } from './steps.js';
 import { buildStudentNav, loadStudent, renderFotoZoneHTML, bindFotoZone, bindStuNameInput, bindPaso3Events, procesarFoto, eliminarFoto, abrirLightbox, cerrarLightbox, selRespEstu, calificarEstudiante, renderDraftProgress, renderPesoSummary, distribuirPesosIgual, handleStudentKey } from './render.js';
-import { showView, toast, renderHistorial, mostrarResumen, pedirBorrar, cerrarModal, confirmarBorrar, abrirModalSettings, cerrarModalSettings, guardarSettings, cargarSettings, exportarCSV, escapeHtml, importarEvaluacion } from './views.js';
+import { showView, toast, renderHistorial, mostrarResumen, pedirBorrar, cerrarModal, confirmarBorrar, abrirModalSettings, cerrarModalSettings, guardarSettings, cargarSettings, exportarCSV, exportarPDF, escapeHtml, importarEvaluacion } from './views.js';
 import { bindHtmlEvents } from './bindHtmlEvents.js';
 
 window.abrirDB = abrirDB;
@@ -71,6 +71,7 @@ window.abrirModalSettings = abrirModalSettings;
 window.cerrarModalSettings = cerrarModalSettings;
 window.guardarSettings = guardarSettings;
 window.exportarCSV = exportarCSV;
+window.exportarPDF = exportarPDF;
 window.escapeHtml = escapeHtml;
 window.importarEvaluacion = importarEvaluacion;
 

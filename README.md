@@ -11,10 +11,13 @@ No solo para matemáticas — funciona para cualquier área: español, ciencias,
 - **Peso de preguntas**: Igual o diferente por pregunta
 - **Fotos de exámenes**: Adjuntar imágenes a cada evaluación
 - **Autoguardado**: Borrador automático al calificar cada estudiante
-- **Historial**: Evaluaciones guardadas en IndexedDB
+- **Historial**: Evaluaciones guardadas en IndexedDB con filtros (nombre, período, fecha)
 - **Exportar/Importar CSV**: Descargar e importar evaluaciones con análisis por pregunta
-- **Distribución de respuestas**: Ver cómo respondieron los estudiantes cada pregunta (A/B/C/D)
+- **Exportar PDF**: Generación de reportes PDF legibles para padres y directivos
+- **Análisis visual**: Barras proporcionales en el resumen (por pregunta y distribución A/B/C/D)
 - **Navegación por teclado**: Atajos en paso 3 (←/→ estudiantes, A/B/C/D respuestas, Enter calificar)
+- **PWA**: Aplicación instalable, funciona sin conexión después de la primera carga
+- **Transiciones suaves**: Animaciones de 250ms entre pasos
 - **Configuración global**: Nota máxima y de aprobación personalizables
 - **Seguridad**: CSP, sanitización XSS, validación de entrada
 
@@ -84,9 +87,11 @@ calmath/
 ## Tecnologías
 
 - **Vite** — Build tool
+- **vite-plugin-pwa** — Progressive Web App
 - **ESLint** — Linting
 - **Vitest** — Testing
 - **IndexedDB** — Persistencia local
+- **jsPDF** — Generación de PDF
 
 ## Seguridad
 

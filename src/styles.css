@@ -179,7 +179,21 @@ option { background: #1e2631; }
 .actions-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
 .hidden { display: none !important; }
 
+.step-transition { animation: stepFade 0.25s ease forwards; }
+@keyframes stepFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
 /* Historial */
+.hist-filters {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+  align-items: center;
+}
+.hist-filters input[type="text"],
+.hist-filters input[type="date"],
+.hist-filters select {
+  padding: 7px 12px; font-size: 0.8rem; min-width: 140px;
+}
+.hist-filters #histFilterNombre { flex: 1; min-width: 180px; }
+.hist-count { font-size: 0.75rem; color: var(--muted); margin-bottom: 12px; }
 .hist-empty { text-align: center; padding: 52px 20px; color: var(--muted); font-size: 0.85rem; line-height: 1.8; }
 .hist-empty .hist-icon { font-size: 3rem; margin-bottom: 14px; }
 .eval-card {
