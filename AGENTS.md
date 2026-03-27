@@ -1,6 +1,6 @@
 # EvalMath - Agent Development Guide
 
-Vanilla JavaScript app for managing and grading ICFES-style math evaluations. Uses IndexedDB with draft auto-save and exam photo attachments.
+Vanilla JavaScript app for managing and grading ICFES-style multiple choice evaluations (any subject). Uses IndexedDB with draft auto-save and exam photo attachments.
 
 ## Commands
 
