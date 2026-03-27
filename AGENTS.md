@@ -144,7 +144,7 @@ document.getElementById('myBtn').onclick = () => myFunc();
 | `←` / `PageUp` | Previous student |
 | `→` / `PageDown` | Next student |
 | `A` / `B` / `C` / `D` | Mark answer (first unanswered or last) |
-| `Enter` | Grade and advance |
+| `Enter` | Grade student |
 | `Home` | First student |
 | `End` | Last student |
 

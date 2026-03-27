@@ -75,7 +75,7 @@ calmath/
 | `←` / `PageUp` | Estudiante anterior |
 | `→` / `PageDown` | Siguiente estudiante |
 | `A` / `B` / `C` / `D` | Marcar respuesta |
-| `Enter` | Calificar y avanzar |
+| `Enter` | Calificar estudiante |
 | `Home` | Primer estudiante |
 | `End` | Último estudiante |
 

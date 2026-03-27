@@ -418,9 +418,6 @@ export function handleStudentKey(e) {
     e.preventDefault();
   } else if (key === 'ENTER') {
     calificarEstudiante();
-    if (currentStudent < numE - 1) {
-      loadStudent(currentStudent + 1);
-    }
     e.preventDefault();
   } else if (key === 'HOME') {
     loadStudent(0);
