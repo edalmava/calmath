@@ -389,8 +389,6 @@ export function handleStudentKey(e) {
   const opts = ['A', 'B', 'C', 'D'];
   const { currentStudent, numE, numP, estudiantesCalificados } = getState();
 
-  if (estudiantesCalificados[currentStudent]) return;
-
   if (key === 'ARROWLEFT' || key === 'PAGEUP') {
     if (currentStudent > 0) {
       loadStudent(currentStudent - 1);
@@ -402,6 +400,7 @@ export function handleStudentKey(e) {
     }
     e.preventDefault();
   } else if (opts.includes(key)) {
+    if (estudiantesCalificados[currentStudent]) return;
     const grid = document.getElementById('stuGrid');
     const firstUnanswered = Array.from(grid.querySelectorAll('.answer-item')).findIndex(item => {
       const optsDiv = item.querySelector('.options');
@@ -417,6 +416,7 @@ export function handleStudentKey(e) {
     }
     e.preventDefault();
   } else if (key === 'ENTER') {
+    if (estudiantesCalificados[currentStudent]) return;
     calificarEstudiante();
     e.preventDefault();
   } else if (key === 'HOME') {
