@@ -289,3 +289,47 @@ export function reiniciar() {
     'La nota minima es <strong style="color:var(--accent2)">1.0</strong> y la maxima es <strong style="color:var(--accent2)">5.0</strong>.';
   setStep(1);
 }
+
+export function importarEstudiantes(texto) {
+  const nombres = texto
+    .split('\n')
+    .map(n => n.trim())
+    .filter(n => n.length > 0);
+
+  if (nombres.length === 0) {
+    window.toast('No se detectaron nombres', true);
+    return;
+  }
+
+  const { numP, numE } = getState();
+  const pt = pesoTotal();
+
+  const maxNombreCount = Math.max(nombres.length, numE);
+  const nuevosNombres = [];
+  const nuevasRespuestas = [];
+  const nuevosCalificados = [];
+
+  for (let i = 0; i < maxNombreCount; i++) {
+    nuevosNombres.push(nombres[i] || 'Estudiante ' + (i + 1));
+    nuevasRespuestas.push(new Array(numP).fill(null));
+    nuevosCalificados.push(false);
+  }
+
+  setState({
+    numE: maxNombreCount,
+    estudiantesNombres: nuevosNombres,
+    estudiantesRespuestas: nuevasRespuestas,
+    estudiantesCalificados: nuevosCalificados,
+    pesosPreguntas: new Array(numP).fill(parseFloat((pt / numP).toFixed(6))),
+  });
+
+  document.getElementById('metaBanner2').innerHTML = metaHTML();
+  document.getElementById('metaBanner3').innerHTML = metaHTML();
+
+  window.toast(maxNombreCount + ' estudiantes importados');
+
+  if (!document.getElementById('step3').classList.contains('hidden')) {
+    window.buildStudentNav();
+    window.loadStudent(0);
+  }
+}

@@ -3,7 +3,7 @@ import { dbGuardarBorrador, dbObtenerBorrador, dbEliminarBorrador } from '../db/
 import { dbGuardarFoto, dbObtenerFoto, dbEliminarFotosByEval } from '../db/photos.js';
 import { getState, setState } from './state.js';
 import { pesoTotal, calcNota, notaMinima, notaMaxima, notaAprobacion } from './calification.js';
-import { irPaso2, selClave, actualizarPeso, bindPaso2Events, irPaso3, irPaso4, setStep, metaHTML, reiniciar } from './steps.js';
+import { irPaso2, selClave, actualizarPeso, bindPaso2Events, irPaso3, irPaso4, setStep, metaHTML, reiniciar, importarEstudiantes } from './steps.js';
 import { buildStudentNav, loadStudent, renderFotoZoneHTML, bindFotoZone, bindStuNameInput, bindPaso3Events, procesarFoto, eliminarFoto, abrirLightbox, cerrarLightbox, selRespEstu, calificarEstudiante, renderDraftProgress, renderPesoSummary, distribuirPesosIgual, handleStudentKey } from './render.js';
 import { showView, toast, renderHistorial, mostrarResumen, pedirBorrar, cerrarModal, confirmarBorrar, abrirModalSettings, cerrarModalSettings, guardarSettings, cargarSettings, exportarCSV, escapeHtml, importarEvaluacion } from './views.js';
 import { bindHtmlEvents } from './bindHtmlEvents.js';
@@ -21,6 +21,9 @@ window.dbGuardarBorrador = dbGuardarBorrador;
 window.dbObtenerBorrador = dbObtenerBorrador;
 window.dbEliminarBorrador = dbEliminarBorrador;
 
+window.getState = getState;
+window.setState = setState;
+
 window.irPaso2 = irPaso2;
 window.selClave = selClave;
 window.actualizarPeso = actualizarPeso;
@@ -31,6 +34,7 @@ window.irPaso4 = irPaso4;
 window.setStep = setStep;
 window.metaHTML = metaHTML;
 window.reiniciar = reiniciar;
+window.importarEstudiantes = importarEstudiantes;
 
 window.buildStudentNav = buildStudentNav;
 window.loadStudent = loadStudent;

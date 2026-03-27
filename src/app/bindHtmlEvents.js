@@ -39,4 +39,21 @@ export function bindHtmlEvents() {
     }
     e.target.value = '';
   };
+
+  document.getElementById('importStudentsBtn').onclick = () => {
+    const state = window.getState();
+    const nombresActuales = state.estudiantesNombres.join('\n');
+    document.getElementById('importStudentsTextarea').value = nombresActuales;
+    document.getElementById('modalImportStudents').classList.remove('hidden');
+  };
+
+  document.getElementById('importStudentsCancelBtn').onclick = () => {
+    document.getElementById('modalImportStudents').classList.add('hidden');
+  };
+
+  document.getElementById('importStudentsApplyBtn').onclick = () => {
+    const texto = document.getElementById('importStudentsTextarea').value;
+    window.importarEstudiantes(texto);
+    document.getElementById('modalImportStudents').classList.add('hidden');
+  };
 }
