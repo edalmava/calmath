@@ -604,6 +604,43 @@ export async function importarEvaluacion(file) {
           throw new Error('El archivo CSV no tiene el formato esperado. Falta metadata.');
         }
 
+        if (!Number.isInteger(metadata.numP) || metadata.numP < 1 || metadata.numP > 100) {
+          throw new Error('El número de preguntas debe estar entre 1 y 100.');
+        }
+
+        if (!Number.isInteger(metadata.numE) || metadata.numE < 1 || metadata.numE > 200) {
+          throw new Error('El número de estudiantes debe estar entre 1 y 200.');
+        }
+
+        const numE = metadata.numE || estudiantesData.length;
+        if (estudiantesData.length > numE) {
+          throw new Error(`El archivo tiene ${estudiantesData.length} estudiantes pero numE indica ${numE}.`);
+        }
+
+        const validClaves = ['A', 'B', 'C', 'D'];
+        for (let i = 0; i < metadata.claveRespuestas.length; i++) {
+          const clave = metadata.claveRespuestas[i];
+          if (!validClaves.includes(clave)) {
+            throw new Error(`Clave de respuesta inválida en pregunta ${i + 1}: "${clave}". Debe ser A, B, C o D.`);
+          }
+        }
+
+        if (metadata.pesosPreguntas && metadata.pesosPreguntas.length !== metadata.numP) {
+          throw new Error(`El número de pesos (${metadata.pesosPreguntas.length}) no coincide con el número de preguntas (${metadata.numP}).`);
+        }
+
+        for (const est of estudiantesData) {
+          if (est.respuestas.length !== metadata.numP) {
+            throw new Error(`El estudiante "${est.nombre}" tiene ${est.respuestas.length} respuestas pero deberían ser ${metadata.numP}.`);
+          }
+          for (let j = 0; j < est.respuestas.length; j++) {
+            const resp = est.respuestas[j];
+            if (resp && !validClaves.includes(resp)) {
+              throw new Error(`Respuesta inválida en pregunta ${j + 1} para "${est.nombre}": "${resp}". Debe ser A, B, C, D o vacío.`);
+            }
+          }
+        }
+
         console.log('Creating evaluacion object...');
 
         const evaluacion = {
@@ -616,7 +653,7 @@ export async function importarEvaluacion(file) {
           fecha: metadata.fecha || '',
           periodo: metadata.periodo || '',
           numP: metadata.numP,
-          numE: metadata.numE || estudiantesData.length,
+          numE: numE,
           sistemaCalif: metadata.sistemaCalif || '1a5',
           notaMaxima: metadata.notaMaxima || 5,
           notaAprobacion: metadata.notaAprobacion || 3,

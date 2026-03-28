@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#f0c040">
   <meta name="description" content="EvalMath - Gestor de Evaluaciones Estilo ICFES">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self';">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <link rel="apple-touch-icon" href="/icon.svg">
@@ -313,17 +313,7 @@
   </div>
 </div>
 
-<script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then(registration => {
-        console.log('SW registered:', registration.scope);
-      }).catch(error => {
-        console.log('SW registration failed:', error);
-      });
-    });
-  }
-</script>
+<script src="/register-sw.js"></script>
 <script type="module" src="/src/app/index.js"></script>
 
 </body>
