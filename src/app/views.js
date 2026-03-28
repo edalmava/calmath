@@ -664,10 +664,63 @@ export async function importarEvaluacion(file) {
 }
 
 export function exportarPDF() {
-  const { currentResumen } = getState();
+  let { currentResumen } = getState();
+  
   if (!currentResumen) {
-    toast('No hay resumen para exportar', true);
-    return;
+    const state = getState();
+    const { numP, numE, evalMeta, estudiantesRespuestas, estudiantesNombres, claveRespuestas, pesosPreguntas, sistemaCalif } = state;
+    
+    if (!numP || !numE) {
+      toast('No hay datos para exportar', true);
+      return;
+    }
+    
+    const notaMaxima = sistemaCalif === '0a5' ? 5 : 5;
+    const notaMinima = sistemaCalif === '0a5' ? 0 : 1;
+    const notaAprueba = 3;
+    
+    const resultados = [];
+    for (let i = 0; i < numE; i++) {
+      const resp = estudiantesRespuestas[i] || [];
+      let suma = 0;
+      for (let j = 0; j < numP; j++) {
+        if (resp[j] === claveRespuestas[j]) suma += pesosPreguntas[j];
+      }
+      const notaBruta = sistemaCalif === '0a5' ? suma : 1 + suma;
+      const nota = Math.min(notaMaxima, Math.max(notaMinima, notaBruta));
+      const aciertos = resp.filter((r, j) => r === claveRespuestas[j]).length;
+      resultados.push({ nombre: estudiantesNombres[i], aciertos, nota, aprobado: nota >= notaAprueba });
+    }
+    
+    const analisisPorPregunta = [];
+    const distribucionPorPregunta = [];
+    for (let j = 0; j < numP; j++) {
+      let aciertosPregunta = 0;
+      const conteo = { A: 0, B: 0, C: 0, D: 0 };
+      for (let i = 0; i < numE; i++) {
+        const resp = estudiantesRespuestas[i] || [];
+        const respuesta = resp[j];
+        if (respuesta === claveRespuestas[j]) aciertosPregunta++;
+        if (respuesta && conteo[respuesta] !== undefined) conteo[respuesta]++;
+      }
+      const pct = ((aciertosPregunta / numE) * 100).toFixed(1);
+      analisisPorPregunta.push({ pregunta: j + 1, aciertos: aciertosPregunta, porcentaje: pct });
+      distribucionPorPregunta.push({ pregunta: j + 1, clave: claveRespuestas[j], ...conteo });
+    }
+    
+    currentResumen = {
+      ev: {
+        nombre: evalMeta.nombre,
+        fecha: evalMeta.fecha,
+        periodo: evalMeta.periodo,
+        numP,
+        numE,
+        notaAprobacion: notaAprueba,
+      },
+      resultados,
+      analisisPorPregunta,
+      distribucionPorPregunta,
+    };
   }
 
   const { ev, resultados, analisisPorPregunta, distribucionPorPregunta } = currentResumen;

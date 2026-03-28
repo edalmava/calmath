@@ -10,12 +10,12 @@ npm install
 
 # Development
 npm run dev              # Dev server (port 3000)
-npm run build           # Production build to dist/
-npm run preview         # Preview production build (port 4173)
+npm run build            # Production build to dist/
+npm run preview          # Preview production build (port 4173)
 
 # Linting
-npm run lint            # Run ESLint
-npm run lint:fix        # Auto-fix ESLint issues
+npm run lint             # Run ESLint
+npm run lint:fix         # Auto-fix ESLint issues
 
 # Testing
 npm run test             # Run all tests once
@@ -35,25 +35,29 @@ npx vitest run -t "calculates correct grade"
 calmath/
 ├── index.html              # Entry point + CSP headers
 ├── package.json            # Dependencies + scripts
-├── vite.config.js          # Vite + PWA config
-├── public/                 # Static assets (icon.svg)
+├── vite.config.js         # Vite config
+├── vitest.config.js       # Vitest config
+├── public/
+│   ├── icon.svg           # App icon
+│   ├── sw.js              # Service Worker (Workbox)
+│   └── manifest.json      # PWA manifest
 ├── src/
-│   ├── styles.css          # All styles
+│   ├── styles.css         # All styles
 │   ├── app/
 │   │   ├── index.js        # Entry + exports to window
 │   │   ├── state.js        # Global state (getState/setState)
 │   │   ├── calification.js # calcNota, calcAciertos, pesoTotal
-│   │   ├── steps.js       # irPaso2, irPaso3, irPaso4, setStep
-│   │   ├── render.js      # DOM rendering + bindPaso3Events
-│   │   ├── views.js       # Views + modals + escapeHtml + PDF export
+│   │   ├── steps.js        # irPaso2, irPaso3, irPaso4, setStep
+│   │   ├── render.js       # DOM rendering + bindPaso3Events
+│   │   ├── views.js        # Views + modals + escapeHtml + PDF export
 │   │   └── bindHtmlEvents.js # Event binding for CSP
 │   └── db/
-│       ├── indexedDB.js     # Core DB (abrirDB, dbGuardar, dbListar)
+│       ├── indexedDB.js    # Core DB (abrirDB, dbGuardar, dbListar)
 │       ├── draft.js        # dbGuardarBorrador, dbObtenerBorrador
 │       └── photos.js       # dbGuardarFoto, dbObtenerFoto
 └── tests/
     ├── app.test.js         # Calc logic tests
-    └── db.test.js          # DB helper tests
+    └── db.test.js         # DB helper tests
 ```
 
 ## Code Style
@@ -215,14 +219,21 @@ function abrirModal() {
 | `dbGuardarBorrador(obj)` | Saves draft |
 | `dbObtenerBorrador()` | Returns draft or null |
 
+### PDF Export (`src/app/views.js`)
+| Function | Description |
+|----------|-------------|
+| `exportarPDF()` | Exports current evaluation to PDF (works from step 4 and history) |
+
 ## Features
 
 - **CSV Import/Export**: Full evaluation data with metadata for re-import.
-- **PDF Export**: Generate printable PDF reports with jsPDF.
-- **PWA**: Installable, works offline via service worker.
+- **PDF Export**: Generate printable PDF reports with jsPDF (includes student table, question analysis, and answer distribution).
+- **PWA**: Installable, works offline via manual Workbox implementation.
 - **Filters**: Search by name, filter by period/date in history.
 - **Visual Analysis**: Bar charts for question analysis and answer distribution.
 - **Auto-save**: Draft auto-save to IndexedDB while grading.
+- **Smooth Transitions**: 250ms fade transitions between steps.
+- **Step Data Persistence**: Step 1 data restored when going back from step 2.
 
 ## Error Handling
 - Wrap async operations in try/catch.
@@ -232,6 +243,7 @@ function abrirModal() {
 ## Notes
 - No frameworks - pure vanilla JavaScript.
 - IndexedDB persistence (evaluations, drafts, photos, settings).
-- Offline capable after first load (PWA).
+- Offline capable after first load (PWA with Workbox).
 - Photos stored as Blobs in IndexedDB.
 - CSP enforced - no inline event handlers.
+- Uses Vite 8, Vitest 4, jsdom 29 for testing.

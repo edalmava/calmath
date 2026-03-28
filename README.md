@@ -52,25 +52,29 @@ calmath/
 ├── index.html              # Punto de entrada HTML
 ├── package.json            # Dependencias y scripts
 ├── vite.config.js          # Configuración Vite
-├── eslint.config.js         # Reglas ESLint
+├── eslint.config.js        # Reglas ESLint
 ├── vitest.config.js        # Configuración de tests
+├── public/
+│   ├── icon.svg           # Icono de la app
+│   ├── sw.js              # Service Worker (Workbox)
+│   └── manifest.json      # Manifiesto PWA
 ├── src/
-│   ├── styles.css          # Estilos de la aplicación
+│   ├── styles.css         # Estilos de la aplicación
 │   ├── app/
-│   │   ├── index.js        # Punto de entrada JS
-│   │   ├── state.js        # Gestión de estado
+│   │   ├── index.js       # Punto de entrada JS
+│   │   ├── state.js       # Gestión de estado
 │   │   ├── calification.js # Cálculo de notas
-│   │   ├── steps.js        # Navegación entre pasos
-│   │   ├── render.js       # Renderizado DOM
-│   │   ├── views.js        # Vistas y modales
+│   │   ├── steps.js       # Navegación entre pasos
+│   │   ├── render.js      # Renderizado DOM
+│   │   ├── views.js       # Vistas, modales y PDF
 │   │   └── bindHtmlEvents.js # Binding de eventos (CSP)
 │   └── db/
-│       ├── indexedDB.js    # IndexedDB core
-│       ├── draft.js        # Borradores
-│       └── photos.js       # Fotos de exámenes
+│       ├── indexedDB.js   # IndexedDB core
+│       ├── draft.js       # Borradores
+│       └── photos.js      # Fotos de exámenes
 └── tests/
-    ├── app.test.js         # Tests de lógica
-    └── db.test.js          # Tests de IndexedDB
+    ├── app.test.js        # Tests de lógica
+    └── db.test.js         # Tests de IndexedDB
 ```
 
 ## Atajos de teclado (Paso 3)
@@ -86,8 +90,8 @@ calmath/
 
 ## Tecnologías
 
-- **Vite** — Build tool
-- **vite-plugin-pwa** — Progressive Web App
+- **Vite 8** — Build tool
+- **Workbox** — Service Worker para PWA offline
 - **ESLint** — Linting
 - **Vitest** — Testing
 - **IndexedDB** — Persistencia local
