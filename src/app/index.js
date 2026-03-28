@@ -219,7 +219,7 @@ window.renderDetEstudiante = async function(idx) {
       try {
         const fotoReg = await dbObtenerFoto(ev.id, idx);
         if (fotoReg?.blob) window.detFotoURLs[idx] = URL.createObjectURL(fotoReg.blob);
-      } catch (_) { }
+      } catch (err) { console.debug('Foto no encontrada:', err); }
     }
     if (window.detFotoURLs[idx]) {
       fotoHTML = `<div class="det-foto-wrap">

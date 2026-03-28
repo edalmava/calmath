@@ -670,7 +670,7 @@ export function exportarPDF() {
     return;
   }
 
-  const { ev, resultados, analisisPorPregunta } = currentResumen;
+  const { ev, resultados, analisisPorPregunta, distribucionPorPregunta } = currentResumen;
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -824,6 +824,76 @@ export function exportarPDF() {
     }
 
     y += 6;
+  }
+
+  y += 12;
+  if (y > pageHeight - 60) {
+    doc.addPage();
+    y = margin;
+  }
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Distribucion de Respuestas por Pregunta', pageWidth / 2, y, { align: 'center' });
+  y += 10;
+
+  const colors = {
+    A: [86, 211, 100],
+    B: [248, 81, 73],
+    C: [240, 192, 64],
+    D: [79, 195, 247]
+  };
+  const maxBarWidth = 55;
+  const colWidth = (pageWidth - 2 * margin) / 2 - 5;
+  const halfDist = Math.ceil(distribucionPorPregunta.length / 2);
+
+  for (let i = 0; i < halfDist; i++) {
+    if (y > pageHeight - 50) {
+      doc.addPage();
+      y = margin;
+    }
+
+    const left = distribucionPorPregunta[i];
+    const right = distribucionPorPregunta[i + half];
+
+    const drawDistrib = (d, xOffset) => {
+      const maxVal = Math.max(d.A, d.B, d.C, d.D, 1);
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`P${d.pregunta} (Clave: ${d.clave})`, xOffset, y);
+      
+      const barY = y + 4;
+      const options = ['A', 'B', 'C', 'D'];
+      const barHeight = 4;
+      
+      options.forEach((opt, idx) => {
+        const count = d[opt];
+        const pct = ((count / ev.numE) * 100).toFixed(0);
+        const barWidth = (count / maxVal) * maxBarWidth;
+        
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(colors[opt][0], colors[opt][1], colors[opt][2]);
+        doc.text(opt, xOffset, barY + idx * 6 + 3);
+        
+        doc.setFillColor(230, 230, 230);
+        doc.rect(xOffset + 6, barY + idx * 6, maxBarWidth, barHeight, 'F');
+        
+        doc.setFillColor(colors[opt][0], colors[opt][1], colors[opt][2]);
+        doc.rect(xOffset + 6, barY + idx * 6, barWidth, barHeight, 'F');
+        
+        doc.setTextColor(100, 100, 100);
+        doc.text(`${count} (${pct}%)`, xOffset + 6 + maxBarWidth + 3, barY + idx * 6 + 3);
+      });
+    };
+
+    drawDistrib(left, margin);
+    if (right) {
+      drawDistrib(right, margin + colWidth + 10);
+    }
+
+    y += 28;
   }
 
   const safeName = ev.nombre.replace(/[^a-zA-Z0-9áéíóúñÁÉÍÓÚÑ]/g, '_');
