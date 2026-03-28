@@ -842,7 +842,7 @@ export function exportarPDF() {
 
     doc.setTextColor(0, 0, 0);
     const nombreMostrar = r.nombre.length > 28 ? r.nombre.substring(0, 25) + '...' : r.nombre;
-    doc.text(nombreMostrar, x + 2, y + 5);
+    doc.text(escapeHtml(nombreMostrar), x + 2, y + 5);
     x += colWidths[1];
 
     doc.setTextColor(86, 211, 100);
