@@ -435,6 +435,18 @@ abrirDB()
   .then(async () => {
     bindHtmlEvents();
     await cargarSettings();
+    const { sistemaCalif, appSettings } = getState();
+    document.getElementById('btnPesoIgual').classList.toggle('pm-active', getState().pesoMode === 'igual');
+    document.getElementById('btnPesoDif').classList.toggle('pm-active', getState().pesoMode === 'diferente');
+    document.getElementById('btnCalif1a5').classList.toggle('pm-active', sistemaCalif === '1a5');
+    document.getElementById('btnCalif0a5').classList.toggle('pm-active', sistemaCalif === '0a5');
+    const pesoMode = getState().pesoMode;
+    document.getElementById('pesoModeDesc').innerHTML = pesoMode === 'igual'
+      ? 'Todas las preguntas valen lo mismo: <strong style="color:var(--accent2)">' + (sistemaCalif === '0a5' ? '5' : '4') + ' / N</strong> puntos cada una.'
+      : 'Cada pregunta tiene un peso personalizado.';
+    document.getElementById('califDesc').innerHTML = sistemaCalif === '0a5'
+      ? 'La nota minima es <strong style="color:var(--accent2)">0.0</strong> y la maxima es <strong style="color:var(--accent2)">' + (appSettings?.notaMaxima ?? 5) + '</strong>.'
+      : 'La nota minima es <strong style="color:var(--accent2)">1.0</strong> y la maxima es <strong style="color:var(--accent2)">' + (appSettings?.notaMaxima ?? 5) + '</strong>.';
     window.verificarBorrador();
   })
   .catch(e => toast('No se pudo inicializar la base de datos: ' + e.message, true));

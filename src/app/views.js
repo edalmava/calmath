@@ -406,6 +406,9 @@ export async function cargarSettings() {
         notaMaxima: settings.notaMaxima || 5,
         notaAprobacion: settings.notaAprobacion || 3,
       });
+      if (settings.sistemaCalif) {
+        setState({ sistemaCalif: settings.sistemaCalif });
+      }
     }
   } catch (e) {
     console.error('Error al cargar settings:', e);
@@ -449,6 +452,16 @@ export async function guardarSettings() {
     const { setSettings } = await import('./state.js');
     setSettings({ notaMaxima, notaAprobacion });
     setState({ sistemaCalif });
+
+    const { pesoMode } = getState();
+    document.getElementById('btnCalif1a5').classList.toggle('pm-active', sistemaCalif === '1a5');
+    document.getElementById('btnCalif0a5').classList.toggle('pm-active', sistemaCalif === '0a5');
+    document.getElementById('pesoModeDesc').innerHTML = pesoMode === 'igual'
+      ? 'Todas las preguntas valen lo mismo: <strong style="color:var(--accent2)">' + (sistemaCalif === '0a5' ? '5' : '4') + ' / N</strong> puntos cada una.'
+      : 'Cada pregunta tiene un peso personalizado.';
+    document.getElementById('califDesc').innerHTML = sistemaCalif === '0a5'
+      ? 'La nota minima es <strong style="color:var(--accent2)">0.0</strong> y la maxima es <strong style="color:var(--accent2)">' + notaMaxima + '</strong>.'
+      : 'La nota minima es <strong style="color:var(--accent2)">1.0</strong> y la maxima es <strong style="color:var(--accent2)">' + notaMaxima + '</strong>.';
 
     cerrarModalSettings();
     toast('Configuracion guardada');
