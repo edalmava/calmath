@@ -1,6 +1,7 @@
 import { getState, setState } from './state.js';
 import { reiniciar } from './steps.js';
 import { jsPDF } from 'jspdf';
+import { parseSistemaCalif } from './calification.js';
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -417,9 +418,16 @@ export async function cargarSettings() {
 
 export function abrirModalSettings() {
   const { appSettings, sistemaCalif } = getState();
-  document.getElementById('setNotaMaxima').value = appSettings.notaMaxima || 5;
+  const { notaMaxima } = parseSistemaCalif(sistemaCalif);
+  const sistemaIni = sistemaCalif?.startsWith('0') ? '0' : '1';
+  
+  const setSistemaIni = document.getElementById('setSistemaIni');
+  const setNotaMaxima = document.getElementById('setNotaMaxima');
+  
+  if (setSistemaIni) setSistemaIni.value = sistemaIni;
+  if (setNotaMaxima) setNotaMaxima.value = notaMaxima;
+  
   document.getElementById('setNotaAprobacion').value = appSettings.notaAprobacion || 3;
-  document.getElementById('setSistemaCalif').value = sistemaCalif || '1a5';
   document.getElementById('modalSettings').classList.remove('hidden');
 }
 
@@ -428,17 +436,18 @@ export function cerrarModalSettings() {
 }
 
 export async function guardarSettings() {
-  const notaMaxima = parseFloat(document.getElementById('setNotaMaxima').value) || 5;
+  const sistemaIni = document.getElementById('setSistemaIni').value;
+  const notaMaxima = parseInt(document.getElementById('setNotaMaxima').value, 10) || 5;
   const notaAprobacion = parseFloat(document.getElementById('setNotaAprobacion').value) || 3;
-  const sistemaCalif = document.getElementById('setSistemaCalif').value;
+  const sistemaCalif = sistemaIni + 'a' + notaMaxima;
 
   if (isNaN(notaMaxima) || notaMaxima < 1 || notaMaxima > 10) {
     toast('La nota maxima debe estar entre 1 y 10', true);
     return;
   }
 
-  if (isNaN(notaAprobacion) || notaAprobacion < 0 || notaAprobacion >= notaMaxima) {
-    toast('La nota de aprobacion debe ser mayor o igual a 0 y menor que la nota maxima', true);
+  if (isNaN(notaAprobacion) || notaAprobacion < 0 || notaAprobacion > notaMaxima) {
+    toast('La nota de aprobacion debe ser mayor o igual a 0 y menor o igual a la nota maxima', true);
     return;
   }
 
@@ -454,14 +463,25 @@ export async function guardarSettings() {
     setState({ sistemaCalif });
 
     const { pesoMode } = getState();
-    document.getElementById('btnCalif1a5').classList.toggle('pm-active', sistemaCalif === '1a5');
-    document.getElementById('btnCalif0a5').classList.toggle('pm-active', sistemaCalif === '0a5');
+    const { notaMinima } = parseSistemaCalif(sistemaCalif);
+    const pt = pesoMode === 'igual' ? (sistemaIni === '0' ? notaMaxima : notaMaxima - 1) : 0;
+    
+    document.getElementById('btnCalif1').classList.toggle('pm-active', sistemaIni === '1');
+    document.getElementById('btnCalif0').classList.toggle('pm-active', sistemaIni === '0');
+    
+    const maxSelect = document.getElementById('califMaxSelect');
+    if (maxSelect) maxSelect.value = String(notaMaxima);
+    
+    const vp = pt > 0 ? (pt / 1).toFixed(4) : '-';
     document.getElementById('pesoModeDesc').innerHTML = pesoMode === 'igual'
-      ? 'Todas las preguntas valen lo mismo: <strong style="color:var(--accent2)">' + (sistemaCalif === '0a5' ? '5' : '4') + ' / N</strong> puntos cada una.'
+      ? `Todas las preguntas valen lo mismo: <strong style="color:var(--accent2)">${vp} puntos</strong> cada una (suma total: ${pt}).`
       : 'Cada pregunta tiene un peso personalizado.';
-    document.getElementById('califDesc').innerHTML = sistemaCalif === '0a5'
-      ? 'La nota minima es <strong style="color:var(--accent2)">0.0</strong> y la maxima es <strong style="color:var(--accent2)">' + notaMaxima + '</strong>.'
-      : 'La nota minima es <strong style="color:var(--accent2)">1.0</strong> y la maxima es <strong style="color:var(--accent2)">' + notaMaxima + '</strong>.';
+    
+    const formula = notaMinima === 0
+      ? '<strong>Σ(aciertos × peso)</strong>'
+      : '<strong>1 + Σ(aciertos × peso)</strong>';
+    document.getElementById('califDesc').innerHTML = 
+      `Nota minima <strong style="color:var(--accent2)">${notaMinima.toFixed(1)}</strong>, maxima <strong style="color:var(--accent2)">${notaMaxima}</strong>. Formula: ${formula}`;
 
     cerrarModalSettings();
     toast('Configuracion guardada');
@@ -479,10 +499,11 @@ export function exportarCSV() {
 
   const { ev, analisisPorPregunta, distribucionPorPregunta } = currentResumen;
 
-  const pesos = ev.pesosPreguntas || new Array(ev.numP).fill(4 / ev.numP);
-  const evPesoMode = ev.pesoMode || 'igual';
   const evCalif = ev.sistemaCalif || ev.evalMeta?.sistemaCalif || '1a5';
-  const evMaxNota = ev.notaMaxima || 5;
+  const { notaMaxima: evMaxNota, notaMinima } = parseSistemaCalif(evCalif);
+  const defaultPeso = (evMaxNota - notaMinima) / ev.numP;
+  const pesos = ev.pesosPreguntas || new Array(ev.numP).fill(defaultPeso);
+  const evPesoMode = ev.pesoMode || 'igual';
   const notaAprueba = ev.notaAprobacion || 3;
 
   const claveHeader = Array.from({ length: ev.numP }, (_, i) => ev.claveRespuestas[i]).join(',');
@@ -612,7 +633,7 @@ export async function importarEvaluacion(file) {
             estudiantesData.push({
               nombre,
               respuestas: respuestasArr,
-              calificados: calif === 'Si'
+              calificados: calif === 'Si',
             });
           }
         }
@@ -675,7 +696,13 @@ export async function importarEvaluacion(file) {
           notaMaxima: metadata.notaMaxima || 5,
           notaAprobacion: metadata.notaAprobacion || 3,
           pesoMode: metadata.pesoMode || 'igual',
-          pesosPreguntas: (metadata.pesosPreguntas || new Array(metadata.numP).fill(4 / metadata.numP)).map(p => parseFloat(p)),
+          pesosPreguntas: metadata.pesosPreguntas 
+            ? metadata.pesosPreguntas.map(p => parseFloat(p))
+            : (() => {
+              const { notaMaxima: max, notaMinima: min } = parseSistemaCalif(metadata.sistemaCalif || '1a5');
+              const defaultPeso = (max - min) / metadata.numP;
+              return new Array(metadata.numP).fill(defaultPeso);
+            })(),
           claveRespuestas: metadata.claveRespuestas,
           estudiantesNombres: estudiantesData.map(e => e.nombre),
           estudiantesRespuestas: estudiantesData.map(e => e.respuestas),
@@ -687,8 +714,7 @@ export async function importarEvaluacion(file) {
 
         const pesos = evaluacion.pesosPreguntas;
         const evCalif = evaluacion.sistemaCalif;
-        const evNotaMin = evCalif === '0a5' ? 0 : 1;
-        const evMaxNota = evaluacion.notaMaxima;
+        const { notaMinima, notaMaxima } = parseSistemaCalif(evCalif);
 
         for (let i = 0; i < evaluacion.numE; i++) {
           const resp = evaluacion.estudiantesRespuestas[i] || [];
@@ -698,8 +724,8 @@ export async function importarEvaluacion(file) {
               suma += pesos[j];
             }
           }
-          const notaBruta = evCalif === '0a5' ? suma : 1 + suma;
-          const nota = Math.min(evMaxNota, Math.max(evNotaMin, notaBruta));
+          const notaBruta = notaMinima + suma;
+          const nota = Math.min(notaMaxima, Math.max(notaMinima, notaBruta));
           const aciertos = resp.filter((r, j) => r === evaluacion.claveRespuestas[j]).length;
           evaluacion.notas.push({ nombre: evaluacion.estudiantesNombres[i], aciertos, nota });
         }
@@ -949,7 +975,7 @@ export function exportarPDF() {
     A: [86, 211, 100],
     B: [248, 81, 73],
     C: [240, 192, 64],
-    D: [79, 195, 247]
+    D: [79, 195, 247],
   };
   const maxBarWidth = 55;
   const colWidth = (pageWidth - 2 * margin) / 2 - 5;

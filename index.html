@@ -140,9 +140,17 @@
 
     <div style="margin-bottom:18px;">
       <label>Sistema de calificacion</label>
-      <div class="peso-mode-toggle">
-        <button class="peso-mode-btn pm-active" id="btnCalif1a5">1 a 5</button>
-        <button class="peso-mode-btn" id="btnCalif0a5">0 a 5</button>
+      <div class="peso-mode-toggle" style="gap:8px;flex-wrap:wrap;">
+        <button class="peso-mode-btn pm-active" id="btnCalif1">Desde 1</button>
+        <button class="peso-mode-btn" id="btnCalif0">Desde 0</button>
+        <select id="califMaxSelect" style="padding:8px 12px;font-size:0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);">
+          <option value="5" selected>Hasta 5</option>
+          <option value="6">Hasta 6</option>
+          <option value="7">Hasta 7</option>
+          <option value="8">Hasta 8</option>
+          <option value="9">Hasta 9</option>
+          <option value="10">Hasta 10</option>
+        </select>
       </div>
       <div style="font-size:0.72rem;color:var(--muted);margin-top:7px;" id="califDesc">
         La nota minima es 1.0 y la maxima es 5.0.
@@ -265,22 +273,28 @@
     <div class="modal-title" style="color:var(--accent);">Configuracion</div>
     <div class="modal-body">
       <div class="form-field" style="margin-bottom:18px;">
-        <label>Nota maxima</label>
-        <input type="number" id="setNotaMaxima" min="1" max="10" step="0.1" value="5" />
-        <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Valor maximo de la nota (por defecto: 5)</div>
-      </div>
-      <div class="form-field" style="margin-bottom:18px;">
-        <label>Nota de aprobacion</label>
-        <input type="number" id="setNotaAprobacion" min="1" max="10" step="0.1" value="3" />
-        <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Nota minima para aprobar (por defecto: 3)</div>
+        <label>Sistema de calificacion por defecto</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <select id="setSistemaIni" style="padding:8px 12px;font-size:0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);">
+            <option value="1">Desde 1</option>
+            <option value="0">Desde 0</option>
+          </select>
+          <span style="align-self:center;">hasta</span>
+          <select id="setNotaMaxima" style="padding:8px 12px;font-size:0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);">
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Sistema utilizado por defecto al crear una nueva evaluacion</div>
       </div>
       <div class="form-field">
-        <label>Sistema de calificacion por defecto</label>
-        <select id="setSistemaCalif">
-          <option value="1a5">1 a 5 (nota minima 1.0)</option>
-          <option value="0a5">0 a 5 (nota minima 0.0)</option>
-        </select>
-        <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Sistema utilizado por defecto al crear una nueva evaluacion</div>
+        <label>Nota de aprobacion</label>
+        <input type="number" id="setNotaAprobacion" min="0" max="10" step="0.1" value="3" />
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:4px;">Nota minima para aprobar (por defecto: 3)</div>
       </div>
     </div>
     <div class="modal-actions">

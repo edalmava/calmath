@@ -2,7 +2,7 @@ import { abrirDB, dbGuardar, dbListar, dbEliminar, dbObtenerSettings, dbGuardarS
 import { dbGuardarBorrador, dbObtenerBorrador, dbEliminarBorrador } from '../db/draft.js';
 import { dbGuardarFoto, dbObtenerFoto, dbEliminarFotosByEval } from '../db/photos.js';
 import { getState, setState } from './state.js';
-import { pesoTotal, calcNota, notaMinima, notaMaxima, notaAprobacion } from './calification.js';
+import { pesoTotal, calcNota, notaMinima, notaMaxima, notaAprobacion, parseSistemaCalif } from './calification.js';
 import { irPaso2, selClave, actualizarPeso, bindPaso2Events, irPaso3, irPaso4, setStep, metaHTML, reiniciar, importarEstudiantes } from './steps.js';
 import { buildStudentNav, loadStudent, renderFotoZoneHTML, bindFotoZone, bindStuNameInput, bindPaso3Events, procesarFoto, eliminarFoto, abrirLightbox, cerrarLightbox, selRespEstu, calificarEstudiante, renderDraftProgress, renderPesoSummary, distribuirPesosIgual, handleStudentKey } from './render.js';
 import { showView, toast, renderHistorial, mostrarResumen, pedirBorrar, cerrarModal, confirmarBorrar, abrirModalSettings, cerrarModalSettings, guardarSettings, cargarSettings, exportarCSV, exportarPDF, escapeHtml, importarEvaluacion } from './views.js';
@@ -88,22 +88,43 @@ window.setPesoMode = function(mode) {
   actualizarInfo();
 };
 
-window.setSistemaCalif = function(sistema) {
-  setState({ sistemaCalif: sistema });
-  document.getElementById('btnCalif1a5').classList.toggle('pm-active', sistema === '1a5');
-  document.getElementById('btnCalif0a5').classList.toggle('pm-active', sistema === '0a5');
-  document.getElementById('califDesc').innerHTML = sistema === '1a5'
-    ? 'Nota minima <strong style="color:var(--accent2)">1.0</strong>, maxima <strong style="color:var(--accent2)">5.0</strong>. Formula: <strong>1 + Σ(aciertos × peso)</strong>'
-    : 'Nota minima <strong style="color:var(--accent2)">0.0</strong>, maxima <strong style="color:var(--accent2)">5.0</strong>. Formula: <strong>Σ(aciertos × peso)</strong>';
+window.setSistemaCalif = function(inicio) {
+  const maxSelect = document.getElementById('califMaxSelect');
+  const max = maxSelect ? maxSelect.value : '5';
+  const sistemaCalif = inicio + 'a' + max;
+  setState({ sistemaCalif });
+  document.getElementById('btnCalif1').classList.toggle('pm-active', inicio === '1');
+  document.getElementById('btnCalif0').classList.toggle('pm-active', inicio === '0');
+  actualizarDescripcionSistema(sistemaCalif);
   window.setPesoMode(getState().pesoMode);
 };
+
+window.updateSistemaCalifFromDropdown = function() {
+  const inicio = getState().sistemaCalif?.startsWith('0') ? '0' : '1';
+  const maxSelect = document.getElementById('califMaxSelect');
+  const max = maxSelect ? maxSelect.value : '5';
+  const sistemaCalif = inicio + 'a' + max;
+  setState({ sistemaCalif });
+  actualizarDescripcionSistema(sistemaCalif);
+  window.setPesoMode(getState().pesoMode);
+};
+
+function actualizarDescripcionSistema(sistemaCalif) {
+  const { notaMaxima, notaMinima } = parseSistemaCalif(sistemaCalif);
+  const formula = notaMinima === 0
+    ? '<strong>Σ(aciertos × peso)</strong>'
+    : '<strong>1 + Σ(aciertos × peso)</strong>';
+  document.getElementById('califDesc').innerHTML =
+    `Nota minima <strong style="color:var(--accent2)">${notaMinima.toFixed(1)}</strong>, maxima <strong style="color:var(--accent2)">${notaMaxima}</strong>. Formula: ${formula}`;
+}
 
 function actualizarInfo() {
   const np = parseInt(document.getElementById('numPreguntas').value);
   const pt = pesoTotal();
+  const { notaMinima } = parseSistemaCalif(getState().sistemaCalif);
   if (np > 0) {
     document.getElementById('valorPregunta').textContent = (pt / np).toFixed(4);
-    document.getElementById('notaMinLabel').textContent = getState().sistemaCalif === '1a5' ? '1.0' : '0.0';
+    document.getElementById('notaMinLabel').textContent = notaMinima.toFixed(1);
     document.getElementById('infoCalculo').classList.remove('hidden');
   } else {
     document.getElementById('infoCalculo').classList.add('hidden');
@@ -435,18 +456,30 @@ abrirDB()
   .then(async () => {
     bindHtmlEvents();
     await cargarSettings();
-    const { sistemaCalif, appSettings } = getState();
+    const { sistemaCalif } = getState();
+    const { notaMaxima, notaMinima } = parseSistemaCalif(sistemaCalif);
+    
     document.getElementById('btnPesoIgual').classList.toggle('pm-active', getState().pesoMode === 'igual');
     document.getElementById('btnPesoDif').classList.toggle('pm-active', getState().pesoMode === 'diferente');
-    document.getElementById('btnCalif1a5').classList.toggle('pm-active', sistemaCalif === '1a5');
-    document.getElementById('btnCalif0a5').classList.toggle('pm-active', sistemaCalif === '0a5');
+    document.getElementById('btnCalif1').classList.toggle('pm-active', sistemaCalif.startsWith('1'));
+    document.getElementById('btnCalif0').classList.toggle('pm-active', sistemaCalif.startsWith('0'));
+    
+    const maxSelect = document.getElementById('califMaxSelect');
+    if (maxSelect) maxSelect.value = String(notaMaxima);
+    
     const pesoMode = getState().pesoMode;
+    const pt = pesoTotal();
+    const vp = pt > 0 ? (pt / 1).toFixed(4) : '-';
     document.getElementById('pesoModeDesc').innerHTML = pesoMode === 'igual'
-      ? 'Todas las preguntas valen lo mismo: <strong style="color:var(--accent2)">' + (sistemaCalif === '0a5' ? '5' : '4') + ' / N</strong> puntos cada una.'
+      ? `Todas las preguntas valen lo mismo: <strong style="color:var(--accent2)">${vp} puntos</strong> cada una (suma total: ${pt}).`
       : 'Cada pregunta tiene un peso personalizado.';
-    document.getElementById('califDesc').innerHTML = sistemaCalif === '0a5'
-      ? 'La nota minima es <strong style="color:var(--accent2)">0.0</strong> y la maxima es <strong style="color:var(--accent2)">' + (appSettings?.notaMaxima ?? 5) + '</strong>.'
-      : 'La nota minima es <strong style="color:var(--accent2)">1.0</strong> y la maxima es <strong style="color:var(--accent2)">' + (appSettings?.notaMaxima ?? 5) + '</strong>.';
+    
+    const formula = notaMinima === 0
+      ? '<strong>Σ(aciertos × peso)</strong>'
+      : '<strong>1 + Σ(aciertos × peso)</strong>';
+    document.getElementById('califDesc').innerHTML = 
+      `Nota minima <strong style="color:var(--accent2)">${notaMinima.toFixed(1)}</strong>, maxima <strong style="color:var(--accent2)">${notaMaxima}</strong>. Formula: ${formula}`;
+    
     window.verificarBorrador();
   })
   .catch(e => toast('No se pudo inicializar la base de datos: ' + e.message, true));

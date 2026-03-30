@@ -9,8 +9,9 @@ export function bindHtmlEvents() {
 
   document.getElementById('btnPesoIgual').onclick = () => window.setPesoMode('igual');
   document.getElementById('btnPesoDif').onclick = () => window.setPesoMode('diferente');
-  document.getElementById('btnCalif1a5').onclick = () => window.setSistemaCalif('1a5');
-  document.getElementById('btnCalif0a5').onclick = () => window.setSistemaCalif('0a5');
+  document.getElementById('btnCalif1').onclick = () => window.setSistemaCalif('1');
+  document.getElementById('btnCalif0').onclick = () => window.setSistemaCalif('0');
+  document.getElementById('califMaxSelect').onchange = () => window.updateSistemaCalifFromDropdown();
 
   document.getElementById('step1ContinueBtn').onclick = () => window.irPaso2();
   document.getElementById('step2ContinueBtn').onclick = () => window.irPaso3();

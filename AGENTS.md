@@ -2,6 +2,10 @@
 
 Vanilla JavaScript app for managing and grading ICFES-style multiple choice evaluations. Uses IndexedDB with draft auto-save, photo attachments, PDF export, and PWA support.
 
+## Idioma
+
+**Responder siempre en español.**
+
 ## Commands
 
 ```bash
@@ -206,9 +210,14 @@ function abrirModal() {
 ### Calculation (`src/app/calification.js`)
 | Function | Description |
 |----------|-------------|
-| `pesoTotal()` | Returns 4 (1a5) or 5 (0a5) |
-| `calcNota(respuestas)` | Calculates grade |
-| `calcAciertos(respuestas)` | Counts correct answers |
+| `parseSistemaCalif(str)` | Parses sistemaCalif ("1a5", "0a10") -> {notaMaxima, notaMinima, empiezaEnCero} |
+| `pesoTotal()` | Returns notaMaxima - notaMinima based on sistemaCalif |
+| `notaMinima()` | Returns minimum grade based on sistemaCalif (0 or 1) |
+| `notaMaxima()` | Returns maximum grade based on sistemaCalif |
+| `notaAprobacion()` | Returns notaAprobacion from appSettings (default 3) |
+| `calcNota(respuestas)` | Calculates grade using sistemaCalif |
+| `calcAciertos(respuestas, clave)` | Counts correct answers (clave param optional) |
+| `calcNotaWithParams(...)` | Calculates grade with explicit parameters |
 
 ### Database (`src/db/*.js`)
 | Function | Description |
@@ -219,14 +228,17 @@ function abrirModal() {
 | `dbGuardarBorrador(obj)` | Saves draft |
 | `dbObtenerBorrador()` | Returns draft or null |
 
-### PDF Export (`src/app/views.js`)
+### Import/Export (`src/app/views.js`)
 | Function | Description |
 |----------|-------------|
+| `exportarCSV()` | Exports evaluation to CSV with metadata (sistemaCalif, weights, etc.) |
 | `exportarPDF()` | Exports current evaluation to PDF (works from step 4 and history) |
+| `importarEvaluacion(file)` | Imports evaluation from CSV file |
 
 ## Features
 
-- **CSV Import/Export**: Full evaluation data with metadata for re-import.
+- **Flexible Grading System**: Configurable "1aX" (from 1 to X) or "0aX" (from 0 to X), where X = 5-10
+- **CSV Import/Export**: Full evaluation data with metadata, supports all grading systems
 - **PDF Export**: Generate printable PDF reports with jsPDF (includes student table, question analysis, and answer distribution).
 - **PWA**: Installable, works offline via manual Workbox implementation.
 - **Filters**: Search by name, filter by period/date in history.
@@ -247,3 +259,31 @@ function abrirModal() {
 - Photos stored as Blobs in IndexedDB.
 - CSP enforced - no inline event handlers.
 - Uses Vite 8, Vitest 4, jsdom 29 for testing.
+- Sistema de calificación flexible: "1aX" (de 1 a X) o "0aX" (de 0 a X), donde X = 5-10.
+- Valores por defecto: nota máxima = 5, nota aprobación = 3, sistema = "1a5".
+
+## Sistema de Calificación Flexible
+
+### Formato
+- `sistemaCalif` almacenado como string: "1a5", "0a10", "1a7", etc.
+- Formato: "{notaMinima}a{notaMaxima}" donde notaMinima es 0 o 1
+
+### UI (index.html)
+- Dropdown `<select id="califMaxSelect">` para nota máxima (5-10)
+- Botones "Desde 1" (`btnCalif1`) y "Desde 0" (`btnCalif0`)
+
+### Funciones clave
+- `parseSistemaCalif(sistemaCalif)` → `{ notaMaxima, notaMinima, empiezaEnCero }`
+- `pesoTotal()` → `notaMaxima - notaMinima` (ej: 1a5 = 4, 0a5 = 5)
+- Peso por pregunta = `pesoTotal() / numP`
+
+### Import/Export CSV
+- Export incluye `sistemaCalif`, `notaMaxima`, `pesosPreguntas`
+- Import usa `parseSistemaCalif()` para calcular notas (no hardcoded)
+- Default weights = `(notaMaxima - notaMinima) / numP`
+
+## Fixes Realizados
+
+1. **CSP Keyboard Events (render.js)**: Eliminado `onkeydown` inline, ahora se bindea en `bindPaso3Events()`
+2. **Reiniciar Step 4 (steps.js)**: Corregido IDs de botones `btnCalif1a5`/`btnCalif0a5` → `btnCalif1`/`btnCalif0`
+3. **CSV Import**: Fixed hardcoded "0a5" check, now uses `parseSistemaCalif()`

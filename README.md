@@ -7,18 +7,21 @@ No solo para matemáticas — funciona para cualquier área: español, ciencias,
 ## Características
 
 - **4 pasos**: Configuración → Clave de respuestas → Respuestas de estudiantes → Resumen
-- **Sistemas de calificación**: 1-5 (nota mínima 1.0) o 0-5 (nota mínima 0.0)
+- **Sistemas de calificación flexibles**: 
+  - "1aX" (de 1 a X) o "0aX" (de 0 a X), donde X = 5 a 10
+  - Configurable mediante dropdown y botones "Desde 1" / "Desde 0"
+- **Valores por defecto**: Nota máxima = 5, nota aprobación = 3, sistema = "1a5"
 - **Peso de preguntas**: Igual o diferente por pregunta
 - **Fotos de exámenes**: Adjuntar imágenes a cada evaluación
 - **Autoguardado**: Borrador automático al calificar cada estudiante
 - **Historial**: Evaluaciones guardadas en IndexedDB con filtros (nombre, período, fecha)
-- **Exportar/Importar CSV**: Descargar e importar evaluaciones con análisis por pregunta
+- **Exportar/Importar CSV**: Descargar e importar evaluaciones con análisis por pregunta (compatible con todos los sistemas de calificación)
 - **Exportar PDF**: Generación de reportes PDF legibles para padres y directivos
 - **Análisis visual**: Barras proporcionales en el resumen (por pregunta y distribución A/B/C/D)
 - **Navegación por teclado**: Atajos en paso 3 (←/→ estudiantes, A/B/C/D respuestas, Enter calificar)
 - **PWA**: Aplicación instalable, funciona sin conexión después de la primera carga
 - **Transiciones suaves**: Animaciones de 250ms entre pasos
-- **Configuración global**: Nota máxima y de aprobación personalizables
+- **Configuración global**: Sistema de calificación, nota máxima y de aprobación personalizables
 - **Seguridad**: CSP, sanitización XSS, validación de entrada
 
 ## Requisitos

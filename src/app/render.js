@@ -46,7 +46,7 @@ export function loadStudent(idx) {
         <div id="fotoContainer_${idx}">${renderFotoZoneHTML(idx)}</div>
       </div>
     </div>
-    <div class="answer-grid" id="stuGrid" tabindex="0" onkeydown="handleStudentKey(event)">`;
+    <div class="answer-grid" id="stuGrid" tabindex="0">`;
 
   for (let i = 0; i < numP; i++) {
     const resp = current.estudiantesRespuestas[idx][i];
@@ -123,6 +123,7 @@ export function bindPaso3Events(idx) {
 
   const grid = panel.querySelector('#stuGrid');
   if (grid) {
+    grid.onkeydown = (e) => handleStudentKey(e);
     grid.querySelectorAll('.answer-item').forEach(item => {
       const qi = parseInt(item.querySelector('.options').id.replace('stu_q', ''));
       item.querySelectorAll('.opt-btn').forEach(btn => {

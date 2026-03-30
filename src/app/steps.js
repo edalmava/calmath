@@ -1,5 +1,5 @@
 import { getState, setState } from './state.js';
-import { pesoTotal, notaAprobacion, notaMaxima } from './calification.js';
+import { pesoTotal, notaAprobacion, notaMaxima, notaMinima, parseSistemaCalif } from './calification.js';
 import { renderPesoSummary, buildStudentNav, loadStudent, renderDraftProgress } from './render.js';
 import { escapeHtml } from './views.js';
 
@@ -29,6 +29,7 @@ export function setStep(n) {
 
   if (n === 1) {
     const { evalMeta, numP, numE, pesoMode, sistemaCalif } = getState();
+    const { notaMaxima } = parseSistemaCalif(sistemaCalif);
     if (evalMeta?.nombre) {
       document.getElementById('nombrePrueba').value = evalMeta.nombre || '';
       document.getElementById('fechaPrueba').value = evalMeta.fecha || '';
@@ -37,8 +38,10 @@ export function setStep(n) {
       document.getElementById('numEstudiantes').value = numE || '';
       document.getElementById('btnPesoIgual').classList.toggle('pm-active', pesoMode === 'igual');
       document.getElementById('btnPesoDif').classList.toggle('pm-active', pesoMode === 'diferente');
-      document.getElementById('btnCalif1a5').classList.toggle('pm-active', sistemaCalif === '1a5');
-      document.getElementById('btnCalif0a5').classList.toggle('pm-active', sistemaCalif === '0a5');
+      document.getElementById('btnCalif1').classList.toggle('pm-active', sistemaCalif?.startsWith('1'));
+      document.getElementById('btnCalif0').classList.toggle('pm-active', sistemaCalif?.startsWith('0'));
+      const maxSelect = document.getElementById('califMaxSelect');
+      if (maxSelect) maxSelect.value = String(notaMaxima);
     }
   }
 }
@@ -215,7 +218,7 @@ export function irPaso3() {
 }
 
 export function irPaso4() {
-  const { numE, numP, estudiantesRespuestas, estudiantesNombres, pesosPreguntas, claveRespuestas, sistemaCalif } = getState();
+  const { numE, numP, estudiantesRespuestas, estudiantesNombres, pesosPreguntas, claveRespuestas } = getState();
 
   document.getElementById('metaBanner4').innerHTML = metaHTML();
   const tbody = document.getElementById('summaryBody');
@@ -229,9 +232,9 @@ export function irPaso4() {
     for (let j = 0; j < numP; j++) {
       if (resp_i[j] === claveRespuestas[j]) sumaPesos += pesosPreguntas[j];
     }
-    const notaBruta = sistemaCalif === '0a5' ? sumaPesos : 1 + sumaPesos;
+    const minNota = notaMinima();
     const maxNota = notaMaxima();
-    const nota = Math.min(maxNota, Math.max(sistemaCalif === '0a5' ? 0 : 1, notaBruta));
+    const nota = Math.min(maxNota, Math.max(minNota, minNota + sumaPesos));
     const aciertos = resp_i.filter((r, j) => r === claveRespuestas[j]).length;
     const errores = numP - aciertos;
     const notaAprueba = notaAprobacion();
@@ -313,8 +316,10 @@ export function reiniciar() {
   document.getElementById('btnPesoDif').classList.remove('pm-active');
   document.getElementById('pesoModeDesc').innerHTML =
     'Todas las preguntas valen lo mismo: <strong style="color:var(--accent2)">4 / N</strong> puntos cada una.';
-  document.getElementById('btnCalif1a5').classList.add('pm-active');
-  document.getElementById('btnCalif0a5').classList.remove('pm-active');
+  document.getElementById('btnCalif1').classList.add('pm-active');
+  document.getElementById('btnCalif0').classList.remove('pm-active');
+  const califMaxSelect = document.getElementById('califMaxSelect');
+  if (califMaxSelect) califMaxSelect.value = '5';
   document.getElementById('califDesc').innerHTML =
     'La nota minima es <strong style="color:var(--accent2)">1.0</strong> y la maxima es <strong style="color:var(--accent2)">5.0</strong>.';
   setStep(1);
