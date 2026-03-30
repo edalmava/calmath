@@ -376,7 +376,7 @@ window.descartarBorrador = function() {
 };
 
 window.guardarEvaluacion = async function() {
-  const { yaGuardada, evalMeta, numP, numE, valPregunta, pesoMode, pesosPreguntas, sistemaCalif, claveRespuestas, estudiantesRespuestas, estudiantesNombres, estudiantesCalificados, estudiantesfotos } = getState();
+  const { yaGuardada, evalMeta, numP, numE, valPregunta, pesoMode, pesosPreguntas, sistemaCalif, claveRespuestas, estudiantesRespuestas, estudiantesNombres, estudiantesCalificados, estudiantesfotos, appSettings } = getState();
   if (yaGuardada) {
     toast('Ya fue guardada anteriormente');
     return;
@@ -389,6 +389,9 @@ window.guardarEvaluacion = async function() {
   });
   const fotosMeta = estudiantesfotos.map(f => f ? { nombre: f.nombre, type: f.type } : null);
 
+  const notaMaxima = appSettings?.notaMaxima ?? 5;
+  const notaAprobacion = appSettings?.notaAprobacion ?? 3;
+
   const registro = {
     ...evalMeta,
     numP,
@@ -397,6 +400,8 @@ window.guardarEvaluacion = async function() {
     pesoMode,
     pesosPreguntas: [...pesosPreguntas],
     sistemaCalif,
+    notaMaxima,
+    notaAprobacion,
     claveRespuestas: [...claveRespuestas],
     estudiantesRespuestas: estudiantesRespuestas.map(r => [...r]),
     estudiantesNombres: [...estudiantesNombres],

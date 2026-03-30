@@ -85,8 +85,7 @@ export async function renderHistorial() {
     }
 
     evals.forEach(ev => {
-      const { appSettings } = getState();
-      const notaAprueba = appSettings?.notaAprobacion ?? 3;
+      const notaAprueba = ev.notaAprobacion ?? 3;
       const promNota = (ev.notas.reduce((s, n) => s + n.nota, 0) / ev.notas.length).toFixed(2);
       const aprobados = ev.notas.filter(n => n.nota >= notaAprueba).length;
       const promColor = promNota >= notaAprueba ? 'var(--green)' : promNota >= notaAprueba - 1 ? 'var(--accent)' : 'var(--red)';
@@ -430,8 +429,13 @@ export async function guardarSettings() {
   const notaAprobacion = parseFloat(document.getElementById('setNotaAprobacion').value) || 3;
   const sistemaCalif = document.getElementById('setSistemaCalif').value;
 
-  if (notaAprobacion >= notaMaxima) {
-    toast('La nota de aprobacion debe ser menor que la nota maxima', true);
+  if (isNaN(notaMaxima) || notaMaxima < 1 || notaMaxima > 10) {
+    toast('La nota maxima debe estar entre 1 y 10', true);
+    return;
+  }
+
+  if (isNaN(notaAprobacion) || notaAprobacion < 0 || notaAprobacion >= notaMaxima) {
+    toast('La nota de aprobacion debe ser mayor o igual a 0 y menor que la nota maxima', true);
     return;
   }
 
@@ -705,16 +709,16 @@ export function exportarPDF() {
   
   if (!currentResumen) {
     const state = getState();
-    const { numP, numE, evalMeta, estudiantesRespuestas, estudiantesNombres, claveRespuestas, pesosPreguntas, sistemaCalif } = state;
+    const { numP, numE, evalMeta, estudiantesRespuestas, estudiantesNombres, claveRespuestas, pesosPreguntas, sistemaCalif, appSettings } = state;
     
     if (!numP || !numE) {
       toast('No hay datos para exportar', true);
       return;
     }
     
-    const notaMaxima = sistemaCalif === '0a5' ? 5 : 5;
+    const notaMaxima = appSettings?.notaMaxima ?? 5;
     const notaMinima = sistemaCalif === '0a5' ? 0 : 1;
-    const notaAprueba = 3;
+    const notaAprueba = appSettings?.notaAprobacion ?? 3;
     
     const resultados = [];
     for (let i = 0; i < numE; i++) {
@@ -752,6 +756,7 @@ export function exportarPDF() {
         periodo: evalMeta.periodo,
         numP,
         numE,
+        notaMaxima,
         notaAprobacion: notaAprueba,
       },
       resultados,
