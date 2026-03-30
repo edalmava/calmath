@@ -291,3 +291,153 @@ Pregunta,Clave,A,B,C,D
     expect(result.notas[1].nota).toBe(2.8);
   });
 });
+
+describe('CSV Export', () => {
+  beforeEach(() => {
+    resetState();
+    document.body.innerHTML = '';
+  });
+
+  it('exports CSV without error for 1a5 system', async () => {
+    setState({
+      currentResumen: {
+        ev: {
+          nombre: 'Test Exam',
+          fecha: '2026-03-29',
+          periodo: '2026-1',
+          numP: 5,
+          numE: 2,
+          sistemaCalif: '1a5',
+          notaMaxima: 5,
+          notaAprobacion: 3,
+          pesoMode: 'igual',
+          pesosPreguntas: [1, 1, 1, 1, 1],
+          claveRespuestas: ['A', 'B', 'C', 'D', 'A'],
+          estudiantesNombres: ['Juan', 'Maria'],
+          estudiantesRespuestas: [
+            ['A', 'B', 'C', 'D', 'A'],
+            ['A', 'A', 'A', 'A', 'A'],
+          ],
+          estudiantesCalificados: [true, true],
+        },
+        analisisPorPregunta: [
+          { pregunta: 1, aciertos: 2, porcentaje: 100 },
+          { pregunta: 2, aciertos: 1, porcentaje: 50 },
+        ],
+        distribucionPorPregunta: [
+          { pregunta: 1, clave: 'A', A: 2, B: 0, C: 0, D: 0 },
+          { pregunta: 2, clave: 'B', A: 1, B: 1, C: 0, D: 0 },
+        ],
+      },
+    });
+
+    const { exportarCSV } = await import('../src/app/views.js');
+    expect(() => exportarCSV()).not.toThrow();
+  });
+
+  it('exports CSV without error for 0a10 system', async () => {
+    setState({
+      currentResumen: {
+        ev: {
+          nombre: 'Math Test',
+          fecha: '2026-03-29',
+          periodo: '2026-1',
+          numP: 10,
+          numE: 3,
+          sistemaCalif: '0a10',
+          notaMaxima: 10,
+          notaAprobacion: 6,
+          pesoMode: 'igual',
+          pesosPreguntas: new Array(10).fill(1),
+          claveRespuestas: ['A', 'B', 'C', 'D', 'A', 'B', 'C', 'D', 'A', 'B'],
+          estudiantesNombres: ['Student1', 'Student2', 'Student3'],
+          estudiantesRespuestas: [
+            ['A', 'B', 'C', 'D', 'A', 'B', 'C', 'D', 'A', 'B'],
+            ['A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'],
+            ['B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B', 'B'],
+          ],
+          estudiantesCalificados: [true, true, true],
+        },
+        analisisPorPregunta: [],
+        distribucionPorPregunta: [],
+      },
+    });
+
+    const { exportarCSV } = await import('../src/app/views.js');
+    expect(() => exportarCSV()).not.toThrow();
+  });
+
+  it('handles missing currentResumen gracefully', async () => {
+    setState({ currentResumen: null });
+
+    const { exportarCSV } = await import('../src/app/views.js');
+    expect(() => exportarCSV()).not.toThrow();
+  });
+
+  it('uses default peso when pesosPreguntas is missing', async () => {
+    setState({
+      currentResumen: {
+        ev: {
+          nombre: 'Test',
+          fecha: '',
+          periodo: '',
+          numP: 5,
+          numE: 1,
+          sistemaCalif: '1a5',
+          notaMaxima: 5,
+          notaAprobacion: 3,
+          pesoMode: 'igual',
+          pesosPreguntas: null,
+          claveRespuestas: ['A', 'B', 'C', 'D', 'A'],
+          estudiantesNombres: ['Juan'],
+          estudiantesRespuestas: [['A', 'B', 'C', 'D', 'A']],
+          estudiantesCalificados: [true],
+        },
+        analisisPorPregunta: [],
+        distribucionPorPregunta: [],
+      },
+    });
+
+    const { exportarCSV } = await import('../src/app/views.js');
+    expect(() => exportarCSV()).not.toThrow();
+  });
+});
+
+describe('PDF Export', () => {
+  beforeEach(() => {
+    resetState();
+    document.body.innerHTML = '';
+  });
+
+  it('handles missing data gracefully (no currentResumen, no numP)', async () => {
+    setState({
+      currentResumen: null,
+      numP: null,
+      numE: null,
+    });
+
+    const { exportarPDF } = await import('../src/app/views.js');
+    expect(() => exportarPDF()).not.toThrow();
+  });
+
+  it('handles state data without currentResumen', async () => {
+    setState({
+      currentResumen: null,
+      numP: 5,
+      numE: 2,
+      evalMeta: { nombre: 'Test', fecha: '2026-03-29', periodo: '2026-1' },
+      sistemaCalif: '1a5',
+      claveRespuestas: ['A', 'B', 'C', 'D', 'A'],
+      pesosPreguntas: [1, 1, 1, 1, 1],
+      estudiantesNombres: ['Juan', 'Maria'],
+      estudiantesRespuestas: [
+        ['A', 'B', 'C', 'D', 'A'],
+        ['A', 'A', 'A', 'A', 'A'],
+      ],
+      appSettings: { notaMaxima: 5, notaAprobacion: 3 },
+    });
+
+    const { exportarPDF } = await import('../src/app/views.js');
+    expect(() => exportarPDF()).not.toThrow();
+  });
+});
