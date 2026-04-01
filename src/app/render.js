@@ -1,5 +1,5 @@
 import { getState, setState } from './state.js';
-import { calcNota, calcAciertos, notaAprobacion } from './calification.js';
+import { calcNota, calcAciertos, notaAprobacion, pesoTotal } from './calification.js';
 
 export function buildStudentNav() {
   const { numE, estudiantesCalificados, estudiantesNombres } = getState();
@@ -359,7 +359,7 @@ export function renderPesoSummary() {
     if (el) el.remove();
     return;
   }
-  const pt = 4;
+  const pt = pesoTotal();
   const total = pesosPreguntas.reduce((s, p) => s + p, 0);
   const totalRounded = Math.round(total * 10000) / 10000;
   const isOk = Math.abs(totalRounded - pt) < 0.005;

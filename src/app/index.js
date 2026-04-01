@@ -121,10 +121,11 @@ function actualizarDescripcionSistema(sistemaCalif) {
 function actualizarInfo() {
   const np = parseInt(document.getElementById('numPreguntas').value);
   const pt = pesoTotal();
-  const { notaMinima } = parseSistemaCalif(getState().sistemaCalif);
+  const { notaMinima, notaMaxima } = parseSistemaCalif(getState().sistemaCalif);
   if (np > 0) {
     document.getElementById('valorPregunta').textContent = (pt / np).toFixed(4);
     document.getElementById('notaMinLabel').textContent = notaMinima.toFixed(1);
+    document.getElementById('notaMaxLabel').textContent = notaMaxima;
     document.getElementById('infoCalculo').classList.remove('hidden');
   } else {
     document.getElementById('infoCalculo').classList.add('hidden');

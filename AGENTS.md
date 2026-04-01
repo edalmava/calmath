@@ -241,3 +241,8 @@ function irPaso2() {
 - Offline capable after first load (PWA with Workbox).
 - Photos stored as Blobs in IndexedDB.
 - Uses Vite 8, Vitest 4, jsdom 29 for testing.
+
+## Fixes Recientes
+
+1. **render.js (renderPesoSummary)**: Cambiado `const pt = 4` hardcoded por `const pt = pesoTotal()` para soportar todos los sistemas de calificación.
+2. **index.html + index.js (infoCalculo)**: Agregado `id="notaMaxLabel"` al span de nota máxima y actualizado `actualizarInfo()` para mostrar la nota máxima real según el sistema de calificación.
