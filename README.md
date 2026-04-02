@@ -7,6 +7,7 @@ No solo para matemáticas — funciona para cualquier área: español, ciencias,
 ## Características
 
 - **4 pasos**: Configuración → Clave de respuestas → Respuestas de estudiantes → Resumen
+- **Búsqueda de estudiantes**: Filtro en tiempo real en paso 3 (parcial, case-insensitive)
 - **Sistemas de calificación flexibles**: 
   - "1aX" (de 1 a X) o "0aX" (de 0 a X), donde X = 5 a 10
   - Configurable mediante dropdown y botones "Desde 1" / "Desde 0"
@@ -71,14 +72,20 @@ calmath/
 │   │   ├── calification.js # Cálculo de notas
 │   │   ├── steps.js       # Navegación entre pasos
 │   │   ├── render.js      # Renderizado DOM
-│   │   ├── views.js       # Vistas, modales y PDF
+│   │   ├── views.js       # Re-exportación de vistas modulares
+│   │   ├── views/         # Vistas modulares
+│   │   │   ├── ui.js      # Utilities: escapeHtml, showView, toast
+│   │   │   ├── historial.js # Vista historial
+│   │   │   ├── resumen.js   # Vista resumen
+│   │   │   ├── modals.js    # Modales de settings/delete
+│   │   │   └── exports.js   # Import/Export CSV/PDF
 │   │   └── bindHtmlEvents.js # Binding de eventos (CSP)
 │   └── db/
 │       ├── indexedDB.js   # IndexedDB core
 │       ├── draft.js       # Borradores
 │       └── photos.js      # Fotos de exámenes
 └── tests/
-    ├── app.test.js        # Tests de lógica
+    ├── app.test.js        # Tests de lógica (34 tests)
     └── db.test.js         # Tests de IndexedDB
 ```
 

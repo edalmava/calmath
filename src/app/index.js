@@ -3,8 +3,8 @@ import { dbGuardarBorrador, dbObtenerBorrador, dbEliminarBorrador } from '../db/
 import { dbGuardarFoto, dbObtenerFoto, dbEliminarFotosByEval } from '../db/photos.js';
 import { getState, setState } from './state.js';
 import { pesoTotal, calcNota, notaMinima, notaMaxima, notaAprobacion, parseSistemaCalif } from './calification.js';
-import { irPaso2, selClave, actualizarPeso, bindPaso2Events, irPaso3, irPaso4, setStep, metaHTML, reiniciar, importarEstudiantes } from './steps.js';
-import { buildStudentNav, loadStudent, renderFotoZoneHTML, bindFotoZone, bindStuNameInput, bindPaso3Events, procesarFoto, eliminarFoto, abrirLightbox, cerrarLightbox, selRespEstu, calificarEstudiante, renderDraftProgress, renderPesoSummary, distribuirPesosIgual, handleStudentKey } from './render.js';
+import { irPaso2, selClave, actualizarPeso, bindPaso2Events, irPaso3, irPaso4, setStep, metaHTML, reiniciar, importarEstudiantes, bindStudentSearch } from './steps.js';
+import { buildStudentNav, loadStudent, renderFotoZoneHTML, bindFotoZone, bindStuNameInput, bindPaso3Events, procesarFoto, eliminarFoto, abrirLightbox, cerrarLightbox, selRespEstu, calificarEstudiante, renderDraftProgress, renderPesoSummary, distribuirPesosIgual, handleStudentKey, filtrarEstudiantes } from './render.js';
 import { showView, toast, renderHistorial, mostrarResumen, pedirBorrar, cerrarModal, confirmarBorrar, abrirModalSettings, cerrarModalSettings, guardarSettings, cargarSettings, exportarCSV, exportarPDF, escapeHtml, importarEvaluacion } from './views.js';
 import { bindHtmlEvents } from './bindHtmlEvents.js';
 
@@ -52,6 +52,7 @@ window.setStep = setStep;
 window.metaHTML = metaHTML;
 window.reiniciar = reiniciar;
 window.importarEstudiantes = importarEstudiantes;
+window.bindStudentSearch = bindStudentSearch;
 
 window.buildStudentNav = buildStudentNav;
 window.loadStudent = loadStudent;
@@ -69,6 +70,7 @@ window.renderDraftProgress = renderDraftProgress;
 window.renderPesoSummary = renderPesoSummary;
 window.distribuirPesosIgual = distribuirPesosIgual;
 window.handleStudentKey = handleStudentKey;
+window.filtrarEstudiantes = filtrarEstudiantes;
 
 window.showView = showView;
 window.toast = toast;

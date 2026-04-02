@@ -130,6 +130,12 @@ option { background: #1e2631; }
 .opt-btn.show-correct { background: rgba(86,211,100,0.14); border-color: var(--green); color: var(--green); }
 
 .student-nav { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 22px; }
+.student-search-wrap { margin-bottom: 12px; }
+.student-search {
+  width: 100%; padding: 8px 14px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg); color: var(--text); font-size: 0.85rem;
+}
+.student-search:focus { outline: none; border-color: var(--accent2); }
 .stu-tab {
   padding: 5px 14px; border: 1px solid var(--border); border-radius: 20px;
   background: transparent; color: var(--muted); font-family: 'DM Mono', monospace;

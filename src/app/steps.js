@@ -212,8 +212,16 @@ export function irPaso3() {
   document.getElementById('metaBanner3').innerHTML = metaHTML();
   renderDraftProgress();
   buildStudentNav();
+  bindStudentSearch();
   loadStudent(0);
   setStep(3);
+}
+
+export function bindStudentSearch() {
+  const input = document.getElementById('studentSearch');
+  if (!input) return;
+  input.value = '';
+  input.oninput = () => window.filtrarEstudiantes();
 }
 
 export function irPaso4() {

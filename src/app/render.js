@@ -1,12 +1,27 @@
 import { getState, setState } from './state.js';
 import { calcNota, calcAciertos, notaAprobacion, pesoTotal } from './calification.js';
+import { escapeHtml } from './views.js';
 
-export function buildStudentNav() {
+export function buildStudentNav(filterTerm = '') {
   const { numE, estudiantesCalificados, estudiantesNombres } = getState();
   const nav = document.getElementById('studentNav');
   if (!nav) return;
   nav.innerHTML = '';
+  
+  const term = filterTerm.toLowerCase().trim();
+  const indices = [];
   for (let i = 0; i < numE; i++) {
+    if (!term || estudiantesNombres[i].toLowerCase().includes(term)) {
+      indices.push(i);
+    }
+  }
+  
+  if (indices.length === 0 && term) {
+    nav.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;padding:8px;">No se encontraron estudiantes que coincidan con "' + escapeHtml(filterTerm) + '"</div>';
+    return;
+  }
+  
+  for (const i of indices) {
     const btn = document.createElement('button');
     const isActive = false;
     const isGraded = estudiantesCalificados[i];
@@ -440,4 +455,10 @@ export function handleStudentKey(e) {
     loadStudent(numE - 1);
     e.preventDefault();
   }
+}
+
+export function filtrarEstudiantes() {
+  const input = document.getElementById('studentSearch');
+  if (!input) return;
+  buildStudentNav(input.value);
 }

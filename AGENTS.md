@@ -52,6 +52,41 @@ calmath/
 │   ├── sw.js              # Service Worker (vanilla, no CDN)
 │   └── manifest.json      # PWA manifest
 ├── src/
+│   ├── styles.css         # All styles
+│   ├── app/
+│   │   ├── index.js       # Entry + exports to window
+│   │   ├── state.js       # Global state (getState/setState)
+│   │   ├── calification.js # Grade calculation (no duplicated logic)
+│   │   ├── steps.js       # Step navigation
+│   │   ├── render.js      # DOM rendering
+│   │   ├── views.js       # Barrel (re-exports)
+│   │   ├── views/         # Refactored views (modular)
+│   │   │   ├── ui.js      # escapeHtml, showView, toast
+│   │   │   ├── historial.js # renderHistorial
+│   │   │   ├── resumen.js # mostrarResumen
+│   │   │   ├── modals.js  # Settings, delete modals
+│   │   │   └── exports.js # CSV/PDF export, import
+│   │   └── bindHtmlEvents.js # Event binding (CSP)
+│   └── db/
+│       ├── indexedDB.js  # IndexedDB core
+│       ├── draft.js      # Draft auto-save
+│       └── photos.js      # Photo storage
+└── tests/
+    ├── app.test.js       # Core tests (34 tests)
+    └── db.test.js        # DB tests
+```
+calmath/
+├── index.html              # Entry point + CSP headers
+├── package.json           # Dependencies + scripts
+├── vite.config.js         # Vite config
+├── vitest.config.js       # Vitest config
+├── scripts/
+│   └── generate-sw-manifest.js  # Post-build script for PWA
+├── public/
+│   ├── icon.svg           # App icon
+│   ├── sw.js              # Service Worker (vanilla, no CDN)
+│   └── manifest.json      # PWA manifest
+├── src/
 │   ├── styles.css        # All styles
 │   ├── app/
 │   │   ├── index.js       # Entry + exports to window
@@ -205,6 +240,15 @@ function irPaso2() {
 | `exportarCSV()` | Exports to CSV with metadata |
 | `exportarPDF()` | Exports to PDF |
 | `importarEvaluacion(file)` | Imports from CSV |
+
+### Modular Views (`src/app/views/`)
+| File | Responsibility | Key Functions |
+|------|-----------------|----------------|
+| `ui.js` | Core utilities | `escapeHtml`, `showView`, `toast` |
+| `historial.js` | History view | `renderHistorial` |
+| `resumen.js` | Results view | `mostrarResumen` |
+| `modals.js` | Settings/delete modals | `cargarSettings`, `abrirModalSettings`, `guardarSettings`, `pedirBorrar` |
+| `exports.js` | Import/export | `exportarCSV`, `exportarPDF`, `importarEvaluacion` |
 | `cargarSettings()` | Loads settings from DB |
 | `abrirModalSettings()` | Opens settings modal |
 | `guardarSettings()` | Saves settings to DB |
