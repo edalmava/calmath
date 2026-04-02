@@ -1,57 +1,104 @@
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.3.0/workbox-precaching.prod.js');
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.3.0/workbox-routing.prod.js');
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.3.0/workbox-strategies.prod.js');
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.3.0/workbox-cacheable-response.prod.js');
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.3.0/workbox-expiration.prod.js');
+const CACHE_NAME = 'calmath-v1';
 
-const { precacheAndRoute } = workbox.precaching;
-const { registerRoute } = workbox.routing;
-const { CacheFirst, NetworkFirst } = workbox.strategies;
-const { CacheableResponsePlugin } = workbox.cacheableResponse;
-const { ExpirationPlugin } = workbox.expiration;
-
-precacheAndRoute(self.__WB_MANIFEST);
-
-registerRoute(
-  ({ request }) => request.destination === 'font',
-  new CacheFirst({
-    cacheName: 'google-fonts-cache',
-    plugins: [
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-      new ExpirationPlugin({
-        maxAgeSeconds: 60 * 60 * 24 * 365,
-        maxEntries: 10,
-      }),
-    ],
-  })
-);
-
-registerRoute(
-  ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
-  new CacheFirst({
-    cacheName: 'fonts-cache',
-    plugins: [
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-      new ExpirationPlugin({
-        maxAgeSeconds: 60 * 60 * 24 * 365,
-        maxEntries: 30,
-      }),
-    ],
-  })
-);
-
-registerRoute(
-  ({ request }) => request.mode === 'navigate',
-  new NetworkFirst({
-    cacheName: 'pages-cache',
-    plugins: [
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-    ],
-  })
-);
-
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+async function precacheFromManifest() {
+  const cache = await caches.open(CACHE_NAME);
+  
+  try {
+    const response = await fetch('/sw-manifest.json');
+    if (!response.ok) {
+      console.error('Failed to fetch manifest:', response.status);
+      return;
+    }
+    const manifest = await response.json();
+    
+    const promises = manifest.files.map(async (file) => {
+      try {
+        await cache.add(file);
+      } catch (e) {
+        console.warn('Failed to cache:', file, e.message);
+      }
+    });
+    
+    await Promise.all(promises);
+    console.log('Precached', manifest.files.length, 'files');
+  } catch (e) {
+    console.error('Failed to precache:', e);
   }
+}
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(precacheFromManifest());
+  self.skipWaiting();
 });
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+function handleFetch(event) {
+  const url = new URL(event.request.url);
+
+  if (url.origin !== location.origin) {
+    return;
+  }
+
+  if (
+    event.request.destination === 'script' ||
+    event.request.destination === 'style' ||
+    event.request.destination === 'image' ||
+    event.request.destination === 'font'
+  ) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        
+        return fetch(event.request).then((networkResponse) => {
+          if (networkResponse.ok) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
+        }).catch(() => {
+          return new Response('', { status: 503, statusText: 'Service Unavailable' });
+        });
+      })
+    );
+    return;
+  }
+
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        return response;
+      }).catch(() => {
+        return caches.match('/index.html');
+      })
+    );
+    return;
+  }
+
+  event.respondWith(
+    fetch(event.request).then((response) => {
+      return response;
+    }).catch(() => {
+      return caches.match(event.request);
+    })
+  );
+}
+
+self.addEventListener('fetch', handleFetch);

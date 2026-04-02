@@ -55,9 +55,8 @@ export function metaHTML() {
     ? `Peso uniforme: <strong>${(pesoTotal() / numP).toFixed(4)}</strong>/pregunta`
     : '<span style="color:var(--accent2)">Pesos individuales</span>';
   const sc = sistemaCalif || '1a5';
-  const califInfo = sc === '0a5'
-    ? '<span style="color:var(--accent)">0-5</span>'
-    : '<span style="color:var(--accent)">1-5</span>';
+  const { notaMinima, notaMaxima } = parseSistemaCalif(sc);
+  const califInfo = `<span style="color:var(--accent)">${notaMinima}-${notaMaxima}</span>`;
   return `
     <strong>${escapeHtml(evalMeta.nombre)}</strong>
     <span class="periodo-pill">Periodo ${escapeHtml(evalMeta.periodo)}</span>
@@ -285,11 +284,17 @@ export function irPaso4() {
   setStep(4);
 }
 
-export function reiniciar() {
+export async function reiniciar() {
   const { estudiantesfotos } = getState();
   estudiantesfotos.forEach(f => {
     if (f?.objectURL) URL.revokeObjectURL(f.objectURL);
   });
+
+  const settings = await window.dbObtenerSettings() || {};
+  const notaMaxima = settings.notaMaxima ?? 5;
+  const notaAprobacion = settings.notaAprobacion ?? 3;
+  const savedSistemaCalif = settings.sistemaCalif || '1a5';
+  const savedPesoMode = settings.pesoMode || 'igual';
 
   setState({
     claveRespuestas: [],
@@ -299,10 +304,11 @@ export function reiniciar() {
     estudiantesfotos: [],
     pesosPreguntas: [],
     evalId: null,
-    pesoMode: 'igual',
-    sistemaCalif: '1a5',
+    pesoMode: savedPesoMode,
+    sistemaCalif: savedSistemaCalif,
     evalMeta: { nombre: '', fecha: '', periodo: '' },
     yaGuardada: false,
+    appSettings: { notaMaxima, notaAprobacion },
   });
 
   window.dbEliminarBorrador?.()?.catch(() => {});
@@ -312,16 +318,36 @@ export function reiniciar() {
   document.getElementById('periodoSel').value = '';
   document.getElementById('fechaPrueba').value = new Date().toISOString().split('T')[0];
   document.getElementById('infoCalculo').classList.add('hidden');
-  document.getElementById('btnPesoIgual').classList.add('pm-active');
-  document.getElementById('btnPesoDif').classList.remove('pm-active');
-  document.getElementById('pesoModeDesc').innerHTML =
-    'Todas las preguntas valen lo mismo: <strong style="color:var(--accent2)">4 / N</strong> puntos cada una.';
-  document.getElementById('btnCalif1').classList.add('pm-active');
-  document.getElementById('btnCalif0').classList.remove('pm-active');
+
+  const { notaMinima, notaMaxima: max } = parseSistemaCalif(savedSistemaCalif);
+  const pt = pesoTotal();
+
+  const btnPesoIgual = document.getElementById('btnPesoIgual');
+  const btnPesoDif = document.getElementById('btnPesoDif');
+  if (savedPesoMode === 'igual') {
+    btnPesoIgual?.classList.add('pm-active');
+    btnPesoDif?.classList.remove('pm-active');
+    document.getElementById('pesoModeDesc').innerHTML =
+      `Todas las preguntas valen lo mismo: <strong style="color:var(--accent2)">${pt} / N</strong> puntos cada una.`;
+  } else {
+    btnPesoIgual?.classList.remove('pm-active');
+    btnPesoDif?.classList.add('pm-active');
+    document.getElementById('pesoModeDesc').innerHTML =
+      '<span style="color:var(--accent2)">Pesos individuales</span>';
+  }
+
+  const btnCalif1 = document.getElementById('btnCalif1');
+  const btnCalif0 = document.getElementById('btnCalif0');
+  const empiezaEnCero = savedSistemaCalif.startsWith('0');
+  btnCalif1?.classList.toggle('pm-active', !empiezaEnCero);
+  btnCalif0?.classList.toggle('pm-active', empiezaEnCero);
+
   const califMaxSelect = document.getElementById('califMaxSelect');
-  if (califMaxSelect) califMaxSelect.value = '5';
+  if (califMaxSelect) califMaxSelect.value = String(max);
+
   document.getElementById('califDesc').innerHTML =
-    'La nota minima es <strong style="color:var(--accent2)">1.0</strong> y la maxima es <strong style="color:var(--accent2)">5.0</strong>.';
+    `La nota minima es <strong style="color:var(--accent2)">${notaMinima.toFixed(1)}</strong> y la maxima es <strong style="color:var(--accent2)">${max}</strong>.`;
+
   setStep(1);
 }
 

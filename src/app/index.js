@@ -8,6 +8,23 @@ import { buildStudentNav, loadStudent, renderFotoZoneHTML, bindFotoZone, bindStu
 import { showView, toast, renderHistorial, mostrarResumen, pedirBorrar, cerrarModal, confirmarBorrar, abrirModalSettings, cerrarModalSettings, guardarSettings, cargarSettings, exportarCSV, exportarPDF, escapeHtml, importarEvaluacion } from './views.js';
 import { bindHtmlEvents } from './bindHtmlEvents.js';
 
+export function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('SW registered:', registration.scope);
+        })
+        .catch((error) => {
+          console.log('SW registration failed:', error);
+        });
+    });
+  }
+}
+
+window.registerServiceWorker = registerServiceWorker;
+registerServiceWorker();
+
 window.abrirDB = abrirDB;
 window.dbGuardar = dbGuardar;
 window.dbListar = dbListar;

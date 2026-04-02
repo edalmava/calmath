@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/generate-sw-manifest.js",
     "preview": "vite preview",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
@@ -21,11 +21,6 @@
     "vitest": "^4.0.0"
   },
   "dependencies": {
-    "jspdf": "^4.2.1",
-    "workbox-precaching": "^7.3.0",
-    "workbox-routing": "^7.3.0",
-    "workbox-strategies": "^7.3.0",
-    "workbox-cacheable-response": "^7.3.0",
-    "workbox-expiration": "^7.3.0"
+    "jspdf": "^4.2.1"
   }
 }

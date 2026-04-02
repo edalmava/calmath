@@ -57,9 +57,11 @@ calmath/
 ├── vite.config.js          # Configuración Vite
 ├── eslint.config.js        # Reglas ESLint
 ├── vitest.config.js        # Configuración de tests
+├── scripts/
+│   └── generate-sw-manifest.js  # Script post-build para PWA
 ├── public/
 │   ├── icon.svg           # Icono de la app
-│   ├── sw.js              # Service Worker (Workbox)
+│   ├── sw.js              # Service Worker (vanilla, sin CDN)
 │   └── manifest.json      # Manifiesto PWA
 ├── src/
 │   ├── styles.css         # Estilos de la aplicación
@@ -94,9 +96,9 @@ calmath/
 ## Tecnologías
 
 - **Vite 8** — Build tool
-- **Workbox** — Service Worker para PWA offline
+- **Service Worker Vanilla** — PWA offline sin dependencias externas
 - **ESLint** — Linting
-- **Vitest** — Testing
+- **Vitest** — Testing (34 tests)
 - **IndexedDB** — Persistencia local
 - **jsPDF** — Generación de PDF
 

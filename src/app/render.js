@@ -383,7 +383,7 @@ export function renderPesoSummary() {
 
 export function distribuirPesosIgual() {
   const { numP } = getState();
-  const pt = 4;
+  const pt = pesoTotal();
   const base = parseFloat((pt / numP).toFixed(6));
   const newPesos = new Array(numP).fill(base);
   setState({ pesosPreguntas: newPesos });

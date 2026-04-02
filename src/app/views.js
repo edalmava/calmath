@@ -246,13 +246,12 @@ export async function mostrarResumen(id) {
     const prom = (totalNota / ev.numE).toFixed(2);
     const pctApr = ((aprobados / ev.numE) * 100).toFixed(0);
     const promColor = prom >= notaAprueba ? 'var(--green)' : prom >= notaAprueba - 1 ? 'var(--accent)' : 'var(--red)';
-    const evPesoTotal = evCalif === '0a5' ? 5 : 4;
+    const { notaMinima, notaMaxima } = parseSistemaCalif(evCalif);
+    const evPesoTotal = notaMaxima - notaMinima;
     const pesoLabel = evPesoMode === 'diferente'
       ? '<span style="color:var(--accent2)">Pesos individuales</span>'
       : `Peso uniforme: <strong>${(evPesoTotal / ev.numP).toFixed(4)}</strong>/pregunta`;
-    const califLabel = evCalif === '0a5'
-      ? '<span style="color:var(--accent)">Escala 0-5</span>'
-      : '<span style="color:var(--accent)">Escala 1-5</span>';
+    const califLabel = `<span style="color:var(--accent)">Escala ${notaMinima}-${notaMaxima}</span>`;
 
     document.getElementById('rsmHeader').innerHTML = `
       <div class="rsm-title">${escapeHtml(ev.nombre)}</div>
@@ -416,18 +415,22 @@ export async function cargarSettings() {
   }
 }
 
-export function abrirModalSettings() {
-  const { appSettings, sistemaCalif } = getState();
-  const { notaMaxima } = parseSistemaCalif(sistemaCalif);
-  const sistemaIni = sistemaCalif?.startsWith('0') ? '0' : '1';
+export async function abrirModalSettings() {
+  const settings = await window.dbObtenerSettings() || {};
+  const savedNotaAprobacion = settings.notaAprobacion ?? 3;
+  const savedSistemaCalif = settings.sistemaCalif || '1a5';
+  
+  const { notaMaxima: max } = parseSistemaCalif(savedSistemaCalif);
+  const sistemaIni = savedSistemaCalif.startsWith('0') ? '0' : '1';
   
   const setSistemaIni = document.getElementById('setSistemaIni');
   const setNotaMaxima = document.getElementById('setNotaMaxima');
+  const setNotaAprobacion = document.getElementById('setNotaAprobacion');
   
   if (setSistemaIni) setSistemaIni.value = sistemaIni;
-  if (setNotaMaxima) setNotaMaxima.value = notaMaxima;
+  if (setNotaMaxima) setNotaMaxima.value = max;
+  if (setNotaAprobacion) setNotaAprobacion.value = savedNotaAprobacion;
   
-  document.getElementById('setNotaAprobacion').value = appSettings.notaAprobacion || 3;
   document.getElementById('modalSettings').classList.remove('hidden');
 }
 

@@ -16,17 +16,17 @@ npm install
 
 # Development
 npm run dev              # Dev server (port 3000)
-npm run build            # Production build to dist/
-npm run preview          # Preview production build (port 4173)
+npm run build           # Production build to dist/ + generate SW manifest
+npm run preview         # Preview production build (port 4173)
 
 # Linting
-npm run lint             # Run ESLint
-npm run lint:fix         # Auto-fix ESLint issues
+npm run lint            # Run ESLint
+npm run lint:fix        # Auto-fix ESLint issues
 
 # Testing
-npm run test             # Run all tests once
-npm run test:watch       # Watch mode
-npm run test:coverage    # With coverage report
+npm run test           # Run all tests once
+npm run test:watch     # Watch mode
+npm run test:coverage  # With coverage report
 
 # Single test file
 npx vitest run tests/app.test.js
@@ -42,30 +42,32 @@ npx vitest run -t "parseSistemaCalif"
 ```
 calmath/
 ├── index.html              # Entry point + CSP headers
-├── package.json            # Dependencies + scripts
-├── vite.config.js          # Vite config
-├── vitest.config.js        # Vitest config
+├── package.json           # Dependencies + scripts
+├── vite.config.js         # Vite config
+├── vitest.config.js       # Vitest config
+├── scripts/
+│   └── generate-sw-manifest.js  # Post-build script for PWA
 ├── public/
 │   ├── icon.svg           # App icon
-│   ├── sw.js              # Service Worker (Workbox)
+│   ├── sw.js              # Service Worker (vanilla, no CDN)
 │   └── manifest.json      # PWA manifest
 ├── src/
-│   ├── styles.css         # All styles
+│   ├── styles.css        # All styles
 │   ├── app/
 │   │   ├── index.js       # Entry + exports to window
 │   │   ├── state.js       # Global state (getState/setState)
 │   │   ├── calification.js # Grade calculation
 │   │   ├── steps.js       # Step navigation
-│   │   ├── render.js     # DOM rendering
-│   │   ├── views.js      # Views, modals, exports
+│   │   ├── render.js      # DOM rendering
+│   │   ├── views.js       # Views, modals, exports
 │   │   └── bindHtmlEvents.js # Event binding (CSP)
 │   └── db/
-│       ├── indexedDB.js   # IndexedDB core
-│       ├── draft.js       # Draft auto-save
+│       ├── indexedDB.js  # IndexedDB core
+│       ├── draft.js      # Draft auto-save
 │       └── photos.js      # Photo storage
 └── tests/
-    ├── app.test.js        # Core tests (34 tests)
-    └── db.test.js         # DB tests
+    ├── app.test.js       # Core tests (34 tests)
+    └── db.test.js        # DB tests
 ```
 
 ---
@@ -174,13 +176,15 @@ function irPaso2() {
 |----------|-------------|
 | `getState()` | Returns current state object |
 | `setState(obj)` | Merges updates into state |
+| `setSettings(obj)` | Updates appSettings |
 
 ### Calculation (`src/app/calification.js`)
 | Function | Description |
 |----------|-------------|
 | `parseSistemaCalif(str)` | Parses "1a5", "0a10" -> {notaMaxima, notaMinima, empiezaEnCero} |
-| `pesoTotal()` | Returns notaMaxima - notaMinima |
+| `pesoTotal()` | Returns notaMaxima - notaMinima based on sistemaCalif |
 | `notaMinima()` / `notaMaxima()` | Returns min/max grade |
+| `notaAprobacion()` | Returns passing grade from appSettings |
 | `calcNota(respuestas)` | Calculates final grade |
 | `calcAciertos(respuestas, clave)` | Counts correct answers |
 
@@ -190,6 +194,8 @@ function irPaso2() {
 | `abrirDB()` | Opens IndexedDB |
 | `dbGuardar(obj)` | Saves evaluation |
 | `dbListar()` | Returns all evaluations |
+| `dbObtenerSettings()` | Gets app settings |
+| `dbGuardarSettings(obj)` | Saves app settings |
 | `dbGuardarBorrador(obj)` | Auto-saves draft |
 | `dbObtenerBorrador()` | Retrieves draft |
 
@@ -199,6 +205,9 @@ function irPaso2() {
 | `exportarCSV()` | Exports to CSV with metadata |
 | `exportarPDF()` | Exports to PDF |
 | `importarEvaluacion(file)` | Imports from CSV |
+| `cargarSettings()` | Loads settings from DB |
+| `abrirModalSettings()` | Opens settings modal |
+| `guardarSettings()` | Saves settings to DB |
 
 ---
 
@@ -227,6 +236,37 @@ function irPaso2() {
 - Max grade: 5
 - Passing grade: 3
 - System: "1a5"
+- Peso mode: "igual"
+
+---
+
+## PWA / Offline Support
+
+### Service Worker (`public/sw.js`)
+- **Vanilla JS** - No external dependencies or CDN
+- **Precaching** - Reads `sw-manifest.json` generated at build time
+- **Cache-First** strategy for assets (JS, CSS, images, fonts)
+- **Network-First** for navigation (HTML)
+
+### Build Process
+```bash
+npm run build
+# 1. vite build → generates /dist with hashed assets
+# 2. node scripts/generate-sw-manifest.js → generates /dist/sw-manifest.json
+```
+
+### Scripts
+- `scripts/generate-sw-manifest.js` - Scans /dist and generates file list
+- Output: `dist/sw-manifest.json` with all files to precache
+
+### Testing Offline
+```bash
+npm run build
+npm run preview
+# In Chrome DevTools:
+# 1. Application > Service Workers > Check "Offline"
+# 2. Reload page
+```
 
 ---
 
@@ -238,11 +278,20 @@ function irPaso2() {
 ## Notes
 - No frameworks - pure vanilla JavaScript.
 - IndexedDB persistence (evaluations, drafts, photos, settings).
-- Offline capable after first load (PWA with Workbox).
+- Offline capable after first load (PWA with vanilla Service Worker).
 - Photos stored as Blobs in IndexedDB.
 - Uses Vite 8, Vitest 4, jsdom 29 for testing.
+- No workbox packages in dependencies (removed).
 
 ## Fixes Recientes
 
-1. **render.js (renderPesoSummary)**: Cambiado `const pt = 4` hardcoded por `const pt = pesoTotal()` para soportar todos los sistemas de calificación.
-2. **index.html + index.js (infoCalculo)**: Agregado `id="notaMaxLabel"` al span de nota máxima y actualizado `actualizarInfo()` para mostrar la nota máxima real según el sistema de calificación.
+1. **render.js (renderPesoSummary)**: Changed `const pt = 4` hardcoded to `const pt = pesoTotal()` for all grading systems.
+2. **render.js (distribuirPesosIgual)**: Changed hardcoded `4` to `pesoTotal()`.
+3. **steps.js (metaBanner2)**: Now uses `parseSistemaCalif()` instead of hardcoded "0a5" / "1a5".
+4. **steps.js (reiniciar)**: Now gets settings from IndexedDB instead of hardcoded values. Async function.
+5. **views.js (abrirModalSettings)**: Now gets settings from IndexedDB directly, not from state.
+6. **views.js (Resumen)**: Fixed hardcoded scale and weight display using `parseSistemaCalif()`.
+7. **render.js (handleStudentKey)**: Removed inline `onkeydown`, now bound in `bindPaso3Events()` (CSP compliance).
+8. **PWA (public/sw.js)**: Implemented Option 2 - dynamic precaching with generated manifest.
+9. **package.json**: Removed workbox-* dependencies, added post-build script.
+10. **tests/app.test.js**: Added tests for CSV Export and PDF Export (34 total tests).
