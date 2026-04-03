@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../stores/useAppStore';
-import { pesoTotal, parseSistemaCalif } from '../utils/calification';
+import { pesoTotal, parseSistemaCalif, calcNota } from '../utils/calification';
 
 function ImportStudentsModal({ isOpen, onClose }) {
   const { estudiantesNombres, importarEstudiantes, numE } = useAppStore();
@@ -101,12 +101,12 @@ export default function NuevaEvaluacion() {
   }, [step, numP, numE, saveDraft]);
 
   const handleNumPChange = (e) => {
-    const val = parseInt(e.target.value) || 0;
+    const val = Math.max(1, Math.min(100, parseInt(e.target.value) || 1));
     setNumP(val);
   };
 
   const handleNumEChange = (e) => {
-    const val = parseInt(e.target.value) || 0;
+    const val = Math.max(1, Math.min(200, parseInt(e.target.value) || 1));
     setNumE(val);
   };
 
@@ -555,12 +555,11 @@ export default function NuevaEvaluacion() {
             const resp = estudiantesRespuestas[currentStudent] || [];
             const aciertos = resp.filter((r, i) => r === claveRespuestas[i]).length;
             const errores = numP - aciertos;
-            const pct = ((aciertos / numP) * 100).toFixed(0);
-            const { notaMinima, notaMaxima } = parseSistemaCalif(sistemaCalif);
-            const nota = (notaMinima + (aciertos * (notaMaxima - notaMinima) / numP)).toFixed(1);
+            const pct = numP > 0 ? ((aciertos / numP) * 100).toFixed(0) : 0;
+            const nota = calcNota(resp, claveRespuestas, pesosPreguntas, sistemaCalif);
             
             setStudentResult({
-              nota: parseFloat(nota),
+              nota: nota,
               aciertos,
               errores,
               pct: parseInt(pct),
