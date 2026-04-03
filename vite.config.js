@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  plugins: [react()],
   root: '.',
   publicDir: 'public',
   build: {
@@ -9,17 +11,8 @@ export default defineConfig({
     target: 'es2020',
     minify: 'esbuild',
     rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) return 'vendor';
-          if (id.includes('db/')) return 'database';
-          if (id.includes('views.js')) return 'views';
-          if (id.includes('render.js')) return 'render';
-          if (id.includes('steps.js')) return 'steps';
-          if (id.includes('calification.js')) return 'calification';
-          if (id.includes('state.js')) return 'state';
-          return 'app';
-        },
+      input: {
+        main: './index.html',
       },
     },
   },
