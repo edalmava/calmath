@@ -85,6 +85,7 @@ export default function NuevaEvaluacion() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [studentResult, setStudentResult] = useState(null);
   const [autoSaveStatus, setAutoSaveStatus] = useState('');
+  const [showBlankConfirmModal, setShowBlankConfirmModal] = useState(false);
 
   // Auto-save every 15 seconds
   useEffect(() => {
@@ -232,6 +233,23 @@ export default function NuevaEvaluacion() {
 
     setEvalMeta({ nombre: nombre.trim(), fecha, periodo: parseInt(periodo) || 0 });
     setStep(2);
+  };
+
+  const handleCalificarEstudiante = () => {
+    const resp = estudiantesRespuestas[currentStudent] || [];
+    const aciertos = resp.filter((r, i) => r === claveRespuestas[i]).length;
+    const sinResponder = resp.filter((r) => r === null || r === undefined).length;
+    const errores = numP - aciertos - sinResponder;
+    const pct = numP > 0 ? ((aciertos / numP) * 100).toFixed(0) : 0;
+    const nota = calcNota(resp, claveRespuestas, pesosPreguntas, sistemaCalif);
+    
+    setStudentResult({
+      nota: nota,
+      aciertos,
+      errores,
+      pct: parseInt(pct),
+      sinResponder,
+    });
   };
 
   const renderPaso1 = () => (
@@ -539,10 +557,13 @@ export default function NuevaEvaluacion() {
                 {studentResult.nota >= (appSettings.notaAprobacion || 3) ? 'Aprobado' : 'Reprobado'}
               </div>
             </div>
-            <div className="result-right">
+              <div className="result-right">
               <div className="result-legend">
                 <span><span className="legend-dot" style={{ background: 'var(--green)' }}></span> Aciertos: <strong>{studentResult.aciertos}</strong></span>
                 <span><span className="legend-dot" style={{ background: 'var(--red)' }}></span> Errores: <strong>{studentResult.errores}</strong></span>
+                {studentResult.sinResponder > 0 && (
+                  <span><span className="legend-dot" style={{ background: 'var(--muted)' }}></span> En blanco: <strong>{studentResult.sinResponder}</strong></span>
+                )}
                 <span><span className="legend-dot" style={{ background: 'var(--accent2)' }}></span> Rendimiento: <strong>{studentResult.pct}%</strong></span>
               </div>
             </div>
@@ -553,17 +574,14 @@ export default function NuevaEvaluacion() {
           className="btn btn-secondary" 
           onClick={() => {
             const resp = estudiantesRespuestas[currentStudent] || [];
-            const aciertos = resp.filter((r, i) => r === claveRespuestas[i]).length;
-            const errores = numP - aciertos;
-            const pct = numP > 0 ? ((aciertos / numP) * 100).toFixed(0) : 0;
-            const nota = calcNota(resp, claveRespuestas, pesosPreguntas, sistemaCalif);
+            const sinResponder = resp.filter((r) => r === null || r === undefined).length;
             
-            setStudentResult({
-              nota: nota,
-              aciertos,
-              errores,
-              pct: parseInt(pct),
-            });
+            if (sinResponder === numP) {
+              setShowBlankConfirmModal(true);
+              return;
+            }
+            
+            handleCalificarEstudiante();
           }}
           style={{ marginBottom: '16px' }}
         >
@@ -627,16 +645,15 @@ export default function NuevaEvaluacion() {
         </div>
 
         <div className="actions-row">
-          <button 
-            className={todosCalificados ? "btn btn-success" : "btn btn-primary"} 
-            disabled={!todosCalificados}
-            onClick={() => setStep(4)}
-            style={{ opacity: todosCalificados ? 1 : 0.5 }}
-          >
-            {todosCalificados ? "Ver resumen" : "Continuar"}
-          </button>
-          {!todosCalificados && (
-            <span style={{ fontSize: '0.7rem', color: 'var(--muted)', marginLeft: '8px' }}>
+          {todosCalificados ? (
+            <button 
+              className="btn btn-success" 
+              onClick={() => setStep(4)}
+            >
+              Ver resumen
+            </button>
+          ) : (
+            <span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>
               Faltan {numE - calificadosCount} estudiante(s) por calificar
             </span>
           )}
@@ -723,6 +740,42 @@ export default function NuevaEvaluacion() {
       {step === 2 && renderPaso2()}
       {step === 3 && renderPaso3()}
       {step === 4 && renderPaso4()}
+
+      {showBlankConfirmModal && (
+        <div className="modal-bg" onClick={() => setShowBlankConfirmModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-title" style={{ color: 'var(--accent)' }}>
+              Advertencia
+            </div>
+            <div className="modal-body">
+              <p>El estudiante no ha respondido ninguna pregunta.</p>
+              <p>¿Desea calificar de todas formas?</p>
+              <p style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>
+                La calificación se marcará como "En blanco".
+              </p>
+            </div>
+            <div className="modal-actions">
+              <button 
+                className="btn-ghost" 
+                onClick={() => setShowBlankConfirmModal(false)}
+                style={{ padding: '9px 20px' }}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => {
+                  setShowBlankConfirmModal(false);
+                  handleCalificarEstudiante();
+                }}
+                style={{ padding: '9px 20px' }}
+              >
+                Calificar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
