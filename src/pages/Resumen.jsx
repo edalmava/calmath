@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppStore } from '../stores/useAppStore';
 import { parseSistemaCalif, calcNota } from '../utils/calification';
 import { jsPDF } from 'jspdf';
@@ -8,18 +8,28 @@ import autoTable from 'jspdf-autotable';
 export default function Resumen() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getEvaluacion, setToast } = useAppStore();
+  const [searchParams] = useSearchParams();
+  const { getEvaluacionWithPhotos, setToast } = useAppStore();
   const [evaluacion, setEvaluacion] = useState(null);
   const [detalleModalOpen, setDetalleModalOpen] = useState(false);
   const [detalleIdx, setDetalleIdx] = useState(0);
+  const [lightboxImg, setLightboxImg] = useState(null);
 
   useEffect(() => {
     const load = async () => {
-      const ev = await getEvaluacion(parseInt(id));
+      const ev = await getEvaluacionWithPhotos(parseInt(id));
       setEvaluacion(ev);
     };
     load();
   }, [id]);
+
+  useEffect(() => {
+    if (evaluacion && searchParams.get('view') === 'respuestas') {
+      setDetalleIdx(0);
+      setDetalleModalOpen(true);
+      navigate(`/evaluacion/${id}`, { replace: true });
+    }
+  }, [evaluacion, searchParams, id, navigate]);
 
   if (!evaluacion) {
     return <main><div className="card">Cargando...</div></main>;
@@ -170,12 +180,12 @@ export default function Resumen() {
       headStyles: { fillColor: [30, 30, 30], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
       bodyStyles: { fontSize: 8 },
       columnStyles: {
-        0: { halign: 'center', cellWidth: 20 },
-        1: { halign: 'center', cellWidth: 25 },
-        2: { halign: 'center', cellWidth: 20 },
-        3: { halign: 'center', cellWidth: 20 },
-        4: { halign: 'center', cellWidth: 25 },
-        5: { halign: 'center', cellWidth: 20 },
+        0: { halign: 'center', cellWidth: 18 },
+        1: { halign: 'center', cellWidth: 22 },
+        2: { halign: 'center', cellWidth: 18 },
+        3: { halign: 'center', cellWidth: 18 },
+        4: { halign: 'center', cellWidth: 22 },
+        5: { halign: 'center', cellWidth: 18 },
       },
     });
 
@@ -224,8 +234,8 @@ export default function Resumen() {
       };
 
       drawDistrib(distribucionPorPregunta[i], margin);
-      if (distribucionPorPregunta[i + half]) {
-        drawDistrib(distribucionPorPregunta[i + half], pageWidth / 2 + 5);
+      if (distribucionPorPregunta[i + halfDist]) {
+        drawDistrib(distribucionPorPregunta[i + halfDist], pageWidth / 2 + 5);
       }
       y += 45;
     }
@@ -289,6 +299,16 @@ export default function Resumen() {
     const defaultPeso = (notaMaxima - notaMinima) / ev.numP;
     const pesos = ev.pesosPreguntas || new Array(ev.numP).fill(defaultPeso);
     
+    let foto = null;
+    if (ev.estudiantesfotos && ev.estudiantesfotos[idx]) {
+      const fotoData = ev.estudiantesfotos[idx];
+      if (fotoData.blob) {
+        foto = URL.createObjectURL(fotoData.blob);
+      } else if (fotoData.data) {
+        foto = fotoData.data;
+      }
+    }
+    
     const aciertos = resp.filter((r, i) => r === clave[i]).length;
     const errores = ev.numP - aciertos;
     const pct = ev.numP > 0 ? ((aciertos / ev.numP) * 100).toFixed(0) : 0;
@@ -296,7 +316,7 @@ export default function Resumen() {
     const notaAprueba = ev.notaAprobacion || 3;
     const aprobado = nota >= notaAprueba;
     
-    return { nombre, resp, clave, aciertos, errores, pct, nota, aprobado, pesos };
+    return { nombre, resp, clave, aciertos, errores, pct, nota, aprobado, pesos, foto };
   };
 
   const handlePrevEstudiante = () => {
@@ -322,6 +342,12 @@ export default function Resumen() {
           <div className="rsm-title">{evaluacion.nombre}</div>
           <div style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
             Periodo {evaluacion.periodo} · {evaluacion.fecha}
+          </div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+            <span className="periodo-pill">{evaluacion.numP} preguntas</span>
+            <span className="periodo-pill">{evaluacion.numE} estudiantes</span>
+            <span className="periodo-pill">Peso {evaluacion.pesoMode === 'diferente' ? 'diferente' : 'igual'}</span>
+            <span className="periodo-pill">{evaluacion.sistemaCalif || '1a5'}</span>
           </div>
         </div>
 
@@ -425,6 +451,31 @@ export default function Resumen() {
                 </div>
               </div>
               <div className="modal-det-body">
+                {detalle.foto && (
+                  <div style={{ marginBottom: '16px', textAlign: 'center' }}>
+                    <div 
+                      style={{ 
+                        display: 'inline-block', 
+                        maxWidth: '200px', 
+                        maxHeight: '150px', 
+                        overflow: 'hidden',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border)',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => setLightboxImg(detalle.foto)}
+                    >
+                      <img 
+                        src={detalle.foto} 
+                        alt="Hoja de respuestas" 
+                        style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'contain' }}
+                      />
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: 'var(--muted)', marginTop: '4px' }}>
+                      Click para ampliar
+                    </div>
+                  </div>
+                )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '8px' }}>
                   {detalle.resp.map((r, i) => {
                     const c = detalle.clave[i];
@@ -458,6 +509,31 @@ export default function Resumen() {
           </div>
         );
       })()}
+
+      {lightboxImg && (
+        <div 
+          className="modal-bg" 
+          style={{ background: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}
+          onClick={() => setLightboxImg(null)}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ maxWidth: '90%', maxHeight: '90%' }}>
+            <img 
+              src={lightboxImg} 
+              alt="Hoja de respuestas" 
+              style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px' }}
+            />
+            <div style={{ textAlign: 'center', marginTop: '16px' }}>
+              <button 
+                className="btn btn-ghost" 
+                onClick={() => setLightboxImg(null)}
+                style={{ color: '#fff' }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

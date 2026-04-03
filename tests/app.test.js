@@ -1,11 +1,11 @@
 /**
- * @deprecated Tests for the legacy vanilla JS version (src/app/).
+ * @deprecated Tests for the legacy vanilla JS version (src/legacy/app/).
  * These tests reference deprecated code that is no longer used in the React version.
  * Kept for historical reference only. Status: 34 passing with DOM-related warnings.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { parseSistemaCalif, pesoTotal, notaMinima, notaMaxima, calcNota, calcAciertos } from '../src/app/calification.js';
-import { getState, setState, resetState } from '../src/app/state.js';
+import { parseSistemaCalif, pesoTotal, notaMinima, notaMaxima, calcNota, calcAciertos } from '../src/legacy/app/calification.js';
+import { getState, setState, resetState } from '../src/legacy/app/state.js';
 
 describe('parseSistemaCalif', () => {
   it('parses 1a5 correctly', () => {
@@ -250,7 +250,7 @@ Pregunta,Clave,A,B,C,D
     const csv = createCSVContent({ sistemaCalif: '1a5', claveRespuestas: 'A,B,C,D,A' });
     const file = new File([csv], 'test.csv', { type: 'text/csv' });
     
-    const { importarEvaluacion } = await import('../src/app/views.js');
+    const { importarEvaluacion } = await import('../src/legacy/app/views.js');
     const result = await importarEvaluacion(file);
 
     expect(result.sistemaCalif).toBe('1a5');
@@ -262,7 +262,7 @@ Pregunta,Clave,A,B,C,D
     const csv = createCSVContent({ sistemaCalif: '0a5', claveRespuestas: 'A,B,C,D,A' });
     const file = new File([csv], 'test.csv', { type: 'text/csv' });
     
-    const { importarEvaluacion } = await import('../src/app/views.js');
+    const { importarEvaluacion } = await import('../src/legacy/app/views.js');
     const result = await importarEvaluacion(file);
 
     expect(result.sistemaCalif).toBe('0a5');
@@ -274,7 +274,7 @@ Pregunta,Clave,A,B,C,D
     const csv = createCSVContent({ sistemaCalif: '1a10', notaMaxima: 10, claveRespuestas: 'A,B,C,D,A' });
     const file = new File([csv], 'test.csv', { type: 'text/csv' });
     
-    const { importarEvaluacion } = await import('../src/app/views.js');
+    const { importarEvaluacion } = await import('../src/legacy/app/views.js');
     const result = await importarEvaluacion(file);
 
     expect(result.sistemaCalif).toBe('1a10');
@@ -287,7 +287,7 @@ Pregunta,Clave,A,B,C,D
     const csv = createCSVContent({ sistemaCalif: '0a7', notaMaxima: 7, claveRespuestas: 'A,B,C,D,A' });
     const file = new File([csv], 'test.csv', { type: 'text/csv' });
     
-    const { importarEvaluacion } = await import('../src/app/views.js');
+    const { importarEvaluacion } = await import('../src/legacy/app/views.js');
     const result = await importarEvaluacion(file);
 
     expect(result.sistemaCalif).toBe('0a7');
@@ -336,7 +336,7 @@ describe('CSV Export', () => {
       },
     });
 
-    const { exportarCSV } = await import('../src/app/views.js');
+    const { exportarCSV } = await import('../src/legacy/app/views.js');
     expect(() => exportarCSV()).not.toThrow();
   });
 
@@ -368,14 +368,14 @@ describe('CSV Export', () => {
       },
     });
 
-    const { exportarCSV } = await import('../src/app/views.js');
+    const { exportarCSV } = await import('../src/legacy/app/views.js');
     expect(() => exportarCSV()).not.toThrow();
   });
 
   it('handles missing currentResumen gracefully', async () => {
     setState({ currentResumen: null });
 
-    const { exportarCSV } = await import('../src/app/views.js');
+    const { exportarCSV } = await import('../src/legacy/app/views.js');
     expect(() => exportarCSV()).not.toThrow();
   });
 
@@ -403,7 +403,7 @@ describe('CSV Export', () => {
       },
     });
 
-    const { exportarCSV } = await import('../src/app/views.js');
+    const { exportarCSV } = await import('../src/legacy/app/views.js');
     expect(() => exportarCSV()).not.toThrow();
   });
 });
@@ -421,7 +421,7 @@ describe('PDF Export', () => {
       numE: null,
     });
 
-    const { exportarPDF } = await import('../src/app/views.js');
+    const { exportarPDF } = await import('../src/legacy/app/views.js');
     expect(() => exportarPDF()).not.toThrow();
   });
 
@@ -442,7 +442,7 @@ describe('PDF Export', () => {
       appSettings: { notaMaxima: 5, notaAprobacion: 3 },
     });
 
-    const { exportarPDF } = await import('../src/app/views.js');
+    const { exportarPDF } = await import('../src/legacy/app/views.js');
     expect(() => exportarPDF()).not.toThrow();
   });
 });

@@ -17,9 +17,15 @@ Gestor de evaluaciones estilo ICFES construído con React, Zustand y React Route
   - Todas las preguntas visibles a la vez
   - Botón "Calificar estudiante actual" para ver resultado individual
   - Botón Continuar solo habilitado cuando todos los estudiantes están calificados
+  - **Adjuntar foto**: Subir foto de hoja de respuestas (optimizada 800x600, JPEG 70%)
+- **Autoguardado automático**: Cada 15 segundos (indicador visual en corner)
+- **Recuperación de borrador**: Modal al iniciar si hay borrador válido
 - **Historial**: Evaluaciones guardadas en IndexedDB con filtros y importar CSV
+- **Botón "Respuestas" en historial**: Acceso directo al modal de detalle
 - **Import/Export CSV**: Formato completo compatible (metadata + estudiantes)
-- **Exportar PDF**: Generación de reportes
+- **Exportar PDF**: Reportes con tablas estilizadas, análisis por pregunta y gráficas de distribución
+- **Detalle de respuestas**: Modal visual con código de colores + miniaturas de fotos + lightbox
+- **Header de evaluación**: Muestra nombre, período, fecha, num preguntas, num estudiantes, tipo de peso, sistema de calificación
 - **Configuración**: Sistema de calificación y nota de aprobación configurables
 - **PWA**: Aplicación instalable, funciona sin conexión después de la primera carga
 
@@ -29,7 +35,8 @@ Gestor de evaluaciones estilo ICFES construído con React, Zustand y React Route
 - **Estado**: Zustand
 - **Navegación**: React Router (SPA)
 - **Base de datos**: IndexedDB (vía idb)
-- **PDF**: jsPDF
+- **PDF**: jsPDF + jspdf-autotable
+- **Testing**: Vitest + jsdom
 - **Estilos**: CSS vanilla (mantenido del proyecto original)
 
 ## Estructura
@@ -37,14 +44,19 @@ Gestor de evaluaciones estilo ICFES construído con React, Zustand y React Route
 ```
 src/
 ├── main.jsx              # Entry point + SW registration
-├── App.jsx               # Router + Layout + Header + Toast + SettingsModal
-├── stores/useAppStore.js # Estado global + IndexedDB + importarEvaluacion
+├── App.jsx               # Router + Layout + Header + Toast + SettingsModal + DraftModal
+├── stores/useAppStore.js # Estado global + IndexedDB + draft + importarEvaluacion
 ├── pages/
-│   ├── NuevaEvaluacion.jsx  # Wizard 4 pasos
-│   ├── Historial.jsx        # Lista evaluaciones + importar CSV
-│   └── Resumen.jsx          # Resultados + export CSV/PDF completo
-├── utils/calification.js    # Lógica de cálculo
-└── styles.css               # Estilos (sin cambios)
+│   ├── NuevaEvaluacion.jsx  # Wizard 4 pasos + auto-save + photos
+│   ├── Historial.jsx        # Lista evaluaciones + filtros + importar CSV
+│   └── Resumen.jsx          # Resultados + export CSV/PDF + photos modal + lightbox
+├── utils/
+│   ├── calification.js  # Lógica de cálculo
+│   └── escapeHtml.js    # Utility XSS prevention
+├── legacy/              # Código vanilla deprecated (no usado)
+│   ├── app/
+│   └── db/
+└── styles.css           # Estilos (sin cambios)
 ```
 
 ## Requisitos
@@ -67,6 +79,9 @@ npm install
 | `npm run preview` | Previsualizar build |
 | `npm run lint` | Verificar código |
 | `npm run lint:fix` | Auto-corrección de lint |
+| `npm run test` | Ejecutar tests |
+| `npm run test:watch` | Tests en modo watch |
+| `npm run test:coverage` | Tests con cobertura |
 
 ## Cambios desde v0.1.0
 
@@ -77,9 +92,18 @@ npm install
 - **Paso 1**: Validación de campos obligatorios uno por uno
 - **Paso 2**: Validación de pesos (no exceder, no faltar)
 - **Paso 3**: Todas las preguntas visibles, botón calificar, continuar solo si todos calificados
+- **Fotos de hojas de respuesta**: Adjuntar, guardar en IndexedDB, mostrar en modal con lightbox
+- **Autoguardado**: Cada 15 segundos con indicador visual
+- **Recuperación de borrador**: Modal al iniciar si hay borrador válido
+- **Botón "Respuestas" en historial**: Acceso directo al modal de detalle
 - **CSV Export/Import**: Formato completo compatible
+- **Detalle de respuestas**: Modal visual con navegación, código de colores y fotos
+- **PDF export mejorado**: Tablas estilizadas, análisis por pregunta, gráficas de distribución
+- **Header de evaluación**: Muestra configuración completa (nombre, período, fecha, preguntas, estudiantes, peso, sistema)
 - **Settings**: Modal de configuración funcional
-- **PWA** - Service worker vanilla mantenido
+- **PWA**: Service worker vanilla mantenido
+- **Tests**: Vitest configurado (tests legacy marcados como obsoletos)
+- **Código legacy separado**: src/legacy/ para código deprecated
 
 ## Licencia
 

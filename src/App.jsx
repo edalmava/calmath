@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import { useAppStore } from './stores/useAppStore';
 import NuevaEvaluacion from './pages/NuevaEvaluacion';
 import Historial from './pages/Historial';
@@ -167,8 +167,11 @@ function Toast({ message, isError }) {
 }
 
 function App() {
-  const { toast, setToast, initFromSettings } = useAppStore();
+  const navigate = useNavigate();
+  const { toast, setToast, initFromSettings, hasValidDraft, recoverDraft, deleteDraft, setStep, setCurrentView, resetState } = useAppStore();
   const [toastMsg, setToastMsg] = React.useState(null);
+  const [showDraftModal, setShowDraftModal] = React.useState(false);
+  const [draftChecked, setDraftChecked] = React.useState(false);
 
   React.useEffect(() => {
     initFromSettings();
@@ -182,6 +185,31 @@ function App() {
     }
   }, [toast]);
 
+  React.useEffect(() => {
+    if (draftChecked) return;
+    setDraftChecked(true);
+    
+    const checkDraft = async () => {
+      const hasDraft = await hasValidDraft();
+      if (hasDraft) {
+        setShowDraftModal(true);
+      }
+    };
+    checkDraft();
+  }, [draftChecked, hasValidDraft]);
+
+  const handleRecoverDraft = async () => {
+    await recoverDraft();
+    setShowDraftModal(false);
+    setCurrentView('nueva');
+    navigate('/');
+  };
+
+  const handleDiscardDraft = async () => {
+    await deleteDraft();
+    setShowDraftModal(false);
+  };
+
   return (
     <>
       <Header />
@@ -191,6 +219,20 @@ function App() {
         <Route path="/evaluacion/:id" element={<Resumen />} />
       </Routes>
       {toastMsg && <Toast message={toastMsg.message} isError={toastMsg.isError} />}
+      {showDraftModal && (
+        <div className="modal-bg">
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title" style={{ color: 'var(--accent)' }}>Borrador encontrado</div>
+            <div className="modal-body">
+              <p>Encontramos un borrador de evaluación. ¿Deseas continuar editando?</p>
+            </div>
+            <div className="modal-actions">
+              <button className="btn-ghost" onClick={handleDiscardDraft} style={{ padding: '9px 20px' }}>Descartar</button>
+              <button className="btn btn-primary" onClick={handleRecoverDraft} style={{ padding: '9px 20px' }}>Continuar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

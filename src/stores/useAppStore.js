@@ -272,6 +272,7 @@ export const useAppStore = create((set, get) => ({
       );
       await Promise.all(fotoPromises);
 
+      await get().deleteDraft();
       set({ evalId: newId, yaGuardada: true });
       return { success: true, id: newId };
     } catch (e) {
@@ -299,6 +300,24 @@ export const useAppStore = create((set, get) => ({
     }
   },
 
+  getEvaluacionWithPhotos: async (id) => {
+    try {
+      const db = await getDB();
+      const evalData = await db.get('evaluaciones', id);
+      if (!evalData) return null;
+      
+      const fotos = [];
+      for (let i = 0; i < evalData.numE; i++) {
+        const fotoData = await db.get('fotos', [id, i]);
+        fotos.push(fotoData ? { nombre: fotoData.nombre, blob: fotoData.blob } : null);
+      }
+      return { ...evalData, estudiantesfotos: fotos };
+    } catch (e) {
+      console.error('Error getting evaluation with photos:', e);
+      return null;
+    }
+  },
+
   deleteEvaluacion: async (id) => {
     try {
       const db = await getDB();
@@ -318,6 +337,23 @@ export const useAppStore = create((set, get) => ({
 
     try {
       const db = await getDB();
+      
+      const fotosSerialized = state.estudiantesfotos.map(f => {
+        if (!f) return null;
+        if (f.blob) {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve({ nombre: f.nombre, type: f.type, data: reader.result });
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(f.blob);
+          });
+        }
+        if (f.data) return Promise.resolve(f);
+        return Promise.resolve(null);
+      });
+      
+      const fotosData = await Promise.all(fotosSerialized);
+      
       const snapshot = {
         id: 'current',
         evalMeta: { ...state.evalMeta },
@@ -331,7 +367,7 @@ export const useAppStore = create((set, get) => ({
         estudiantesRespuestas: state.estudiantesRespuestas.map(r => [...(r || [])]),
         estudiantesNombres: [...state.estudiantesNombres],
         estudiantesCalificados: [...state.estudiantesCalificados],
-        fotosMeta: state.estudiantesfotos.map(f => f ? { nombre: f.nombre, type: f.type } : null),
+        estudiantesfotos: fotosData,
         savedAt: new Date().toISOString(),
       };
       await db.put('borrador', snapshot);
@@ -360,9 +396,35 @@ export const useAppStore = create((set, get) => ({
     }
   },
 
+  hasValidDraft: async () => {
+    try {
+      const db = await getDB();
+      const draft = await db.get('borrador', 'current');
+      if (!draft) return false;
+      if (!draft.numP || !draft.numE) return false;
+      if (!draft.estudiantesCalificados || !draft.estudiantesCalificados.includes(true)) return false;
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
   recoverDraft: async () => {
     const draft = await get().getDraft();
-    if (!draft || !draft.numP) return false;
+    if (!draft || !draft.numP || !draft.numE) return false;
+
+    const fotosRestored = draft.estudiantesfotos ? await Promise.all(
+      draft.estudiantesfotos.map(async (f) => {
+        if (!f) return null;
+        if (f.blob) return f;
+        if (f.data) {
+          const res = await fetch(f.data);
+          const blob = await res.blob();
+          return { nombre: f.nombre, type: f.type, blob };
+        }
+        return null;
+      }),
+    ) : new Array(draft.numE).fill(null);
 
     set({
       evalMeta: draft.evalMeta || {},
@@ -376,7 +438,7 @@ export const useAppStore = create((set, get) => ({
       estudiantesRespuestas: draft.estudiantesRespuestas || [],
       estudiantesNombres: draft.estudiantesNombres || [],
       estudiantesCalificados: draft.estudiantesCalificados || [],
-      estudiantesfotos: new Array(draft.numE).fill(null),
+      estudiantesfotos: fotosRestored,
       step: 3,
     });
 
@@ -469,7 +531,6 @@ function parsearPesosCSV(lineas, numP) {
 }
 
 function parsearEstudianteCSV(linea, numP) {
-  // Formato: 1|María López|A|B|C|D|...
   const partes = linea.split('|').map(p => p.trim());
   const respuestas = partes.slice(2, 2 + numP).map(r => r === '-' ? null : r);
   return {

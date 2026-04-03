@@ -1,6 +1,6 @@
 # EvalMath - Agent Development Guide
 
-React app for managing and grading ICFES-style multiple choice evaluations with IndexedDB, PDF export, and PWA support.
+React app for managing and grading ICFES-style multiple choice evaluations with IndexedDB, PDF export, photos support, and PWA.
 
 ## Idioma
 
@@ -25,8 +25,8 @@ npm run lint:fix        # Auto-fix ESLint issues
 
 # Testing
 npm run test           # Run all tests once
-npm run test:watch    # Watch mode
-npm run test:coverage # With coverage report
+npm run test:watch     # Watch mode
+npm run test:coverage  # With coverage report
 npx vitest run src/utils/calification.test.js  # Run single test file
 npx vitest run -t "test name"  # Run single test by name
 ```
@@ -40,7 +40,7 @@ calmath/
 ├── index.html              # Entry point + CSP headers
 ├── package.json           # Dependencies + scripts
 ├── vite.config.js         # Vite config
-├── vitest.config.js      # Vitest config
+├── vitest.config.js       # Vitest config
 ├── scripts/
 │   └── generate-sw-manifest.js  # Post-build script for PWA
 ├── public/
@@ -49,15 +49,19 @@ calmath/
 │   ├── main.jsx, App.jsx  # Entry point + Router
 │   ├── styles.css         # Vanilla CSS (unchanged)
 │   ├── stores/
-│   │   └── useAppStore.js # Zustand store + IndexedDB
+│   │   └── useAppStore.js # Zustand store + IndexedDB + draft
 │   ├── pages/
-│   │   ├── NuevaEvaluacion.jsx # Wizard 4 pasos
-│   │   ├── Historial.jsx      # Lista + importar CSV
-│   │   └── Resumen.jsx        # Resultados + export CSV/PDF
-│   └── utils/
-│       └── calification.js   # Lógica de cálculo
+│   │   ├── NuevaEvaluacion.jsx # Wizard 4 pasos + photos
+│   │   ├── Historial.jsx        # Lista + importar CSV
+│   │   └── Resumen.jsx          # Resultados + export + photos modal
+│   ├── utils/
+│   │   ├── calification.js   # Grade calculation logic
+│   │   └── escapeHtml.js    # XSS prevention utility
+│   └── legacy/             # Deprecated vanilla JS code
+│       ├── app/            # Old implementation (unused)
+│       └── db/              # Old IndexedDB helpers (unused)
 └── tests/
-    └── *.test.js         # Vitest tests
+    └── *.test.js           # Vitest tests
 ```
 
 ---
@@ -68,8 +72,9 @@ calmath/
 - **Zustand** for state management
 - **React Router** for navigation
 - **IndexedDB** via `idb` wrapper
-- **jsPDF** for PDF export
+- **jsPDF** + **jspdf-autotable** for PDF export
 - **Vitest** + jsdom for testing
+- **PWA** with vanilla Service Worker
 
 ---
 
@@ -84,9 +89,10 @@ calmath/
 ### Imports (order: react → react-router → zustand → utils → local)
 ```javascript
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAppStore } from '../stores/useAppStore';
 import { parseSistemaCalif, calcNota } from '../utils/calification';
+import { escapeHtml } from '../utils/escapeHtml';
 ```
 
 ### Naming Conventions
@@ -133,7 +139,7 @@ const { step, setStep } = useAppStore();
 ## Security
 
 ### XSS Prevention
-- Escape user input: use `escapeHtml(str)` from utils
+- Escape user input: use `escapeHtml(str)` from `src/utils/escapeHtml.js`
 - Never use `innerHTML` with unsanitized user input
 - Use `textContent` instead of `innerHTML`
 
@@ -165,7 +171,7 @@ describe('calcNota', () => {
 - `tests/app.test.js` - **@deprecated** Legacy vanilla JS tests (34 passing, DOM warnings)
 - `tests/db.test.js` - **@deprecated** Legacy vanilla JS tests
 
-Los tests legacy referencian código en `src/app/` que ya no se usa en la versión React.
+Los tests legacy referencian código en `src/legacy/` que ya no se usa en la versión React.
 
 ---
 
@@ -193,6 +199,35 @@ return (
 );
 ```
 
+### Lightbox (for photo zoom)
+```javascript
+const [lightboxImg, setLightboxImg] = useState(null);
+// In render:
+{lightboxImg && (
+  <div className="modal-bg" onClick={() => setLightboxImg(null)}>
+    <img src={lightboxImg} onClick={e => e.stopPropagation()} />
+  </div>
+)}
+```
+
+---
+
+## Auto-Save / Draft System
+
+The app includes automatic draft saving:
+- **Autoguardado**: Every 15 seconds when in steps 2-4 with valid data
+- **Validación de borrador**: numP > 0, numE > 0, and at least 1 student graded
+- **Recuperación**: Modal on app start asks to continue editing or discard
+
+### Draft Functions
+```javascript
+const { saveDraft, getDraft, hasValidDraft, recoverDraft, deleteDraft } = useAppStore();
+await saveDraft();           // Save current state to IndexedDB
+const hasDraft = await hasValidDraft();  // Check if valid draft exists
+await recoverDraft();        // Restore draft and navigate to step 3
+await deleteDraft();        // Remove draft from IndexedDB
+```
+
 ---
 
 ## API Reference
@@ -205,7 +240,12 @@ return (
 | `setNumE(numE)` | Set number of students |
 | `setClaveRespuesta(idx, val)` | Set answer key for question |
 | `setEstudianteRespuesta(estuIdx, pregIdx, val)` | Set student answer |
-| `saveEvaluacion()` | Save evaluation to IndexedDB |
+| `setEstudianteFoto(idx, foto)` | Set student photo ({nombre, type, blob}) |
+| `saveEvaluacion()` | Save evaluation to IndexedDB, deletes draft |
+| `saveDraft()` | Auto-save current state to IndexedDB |
+| `hasValidDraft()` | Check if valid draft exists |
+| `recoverDraft()` | Restore draft and go to step 3 |
+| `getEvaluacionWithPhotos(id)` | Get evaluation with photos loaded |
 | `listEvaluaciones()` | Get all evaluations |
 | `getEvaluacion(id)` | Get evaluation by ID |
 | `deleteEvaluacion(id)` | Delete evaluation |
@@ -218,6 +258,11 @@ return (
 | `pesoTotal(str)` | Returns notaMaxima - notaMinima |
 | `calcNota(respuestas, clave, pesos, sistemaCalif)` | Calculate final grade |
 
+### Utilities (`src/utils/escapeHtml.js`)
+| Function | Description |
+|----------|-------------|
+| `escapeHtml(str)` | Escape HTML special chars for XSS prevention |
+
 ---
 
 ## Notes
@@ -226,3 +271,4 @@ return (
 - Vanilla CSS unchanged from original version
 - PWA with vanilla Service Worker (no Workbox)
 - Offline capable after first load
+- Photos are optimized (max 800x600, JPEG 70%) before storing

@@ -1,5 +1,5 @@
 /**
- * @deprecated Tests for the legacy vanilla JS version (src/app/).
+ * @deprecated Tests for the legacy vanilla JS version (src/legacy/app/).
  * These tests reference deprecated code that is no longer used in the React version.
  * Kept for historical reference only.
  */

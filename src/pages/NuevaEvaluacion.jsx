@@ -71,6 +71,7 @@ export default function NuevaEvaluacion() {
     estudiantesNombres, setEstudianteNombre,
     estudiantesRespuestas, setEstudianteRespuesta,
     estudiantesCalificados, setEstudianteCalificado,
+    estudiantesfotos, setEstudianteFoto,
     currentStudent, setCurrentStudent,
     appSettings,
     resetState,
@@ -83,6 +84,21 @@ export default function NuevaEvaluacion() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [studentResult, setStudentResult] = useState(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState('');
+
+  // Auto-save every 15 seconds
+  useEffect(() => {
+    if (step < 2 || numP === 0 || numE === 0) return;
+
+    const interval = setInterval(async () => {
+      setAutoSaveStatus('Guardando...');
+      await saveDraft();
+      setAutoSaveStatus('Guardado');
+      setTimeout(() => setAutoSaveStatus(''), 2000);
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [step, numP, numE, saveDraft]);
 
   const handleNumPChange = (e) => {
     const val = parseInt(e.target.value) || 0;
@@ -555,6 +571,62 @@ export default function NuevaEvaluacion() {
           Calificar estudiante actual
         </button>
 
+        <div style={{ marginBottom: '16px' }}>
+          <input
+            type="file"
+            id={`foto-estudiante-${currentStudent}`}
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              
+              const reader = new FileReader();
+              reader.onload = () => {
+                const img = new Image();
+                img.onload = () => {
+                  const canvas = document.createElement('canvas');
+                  const maxWidth = 800;
+                  const maxHeight = 600;
+                  let width = img.width;
+                  let height = img.height;
+                  
+                  if (width > maxWidth || height > maxHeight) {
+                    const ratio = Math.min(maxWidth / width, maxHeight / height);
+                    width = width * ratio;
+                    height = height * ratio;
+                  }
+                  
+                  canvas.width = width;
+                  canvas.height = height;
+                  const ctx = canvas.getContext('2d');
+                  ctx.drawImage(img, 0, 0, width, height);
+                  
+                  canvas.toBlob((blob) => {
+                    setEstudianteFoto(currentStudent, { nombre: file.name, type: file.type, blob });
+                    setToast({ message: 'Foto adjuntada' });
+                  }, 'image/jpeg', 0.7);
+                };
+                img.src = reader.result;
+              };
+              reader.readAsDataURL(file);
+              e.target.value = '';
+            }}
+          />
+          <label 
+            htmlFor={`foto-estudiante-${currentStudent}`}
+            className="btn btn-ghost"
+            style={{ cursor: 'pointer', padding: '8px 16px', fontSize: '0.8rem' }}
+          >
+            {estudiantesfotos[currentStudent] ? '📷 Cambiar foto' : '📷 Adjuntar foto'}
+          </label>
+          {estudiantesfotos[currentStudent] && (
+            <span style={{ marginLeft: '8px', fontSize: '0.7rem', color: 'var(--green)' }}>
+              ✓
+            </span>
+          )}
+        </div>
+
         <div className="actions-row">
           <button 
             className={todosCalificados ? "btn btn-success" : "btn btn-primary"} 
@@ -643,6 +715,11 @@ export default function NuevaEvaluacion() {
 
   return (
     <main>
+      {autoSaveStatus && (
+        <div style={{ position: 'fixed', bottom: '10px', right: '10px', background: 'var(--bg)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: '4px', fontSize: '0.7rem', color: 'var(--muted)', zIndex: 1000 }}>
+          {autoSaveStatus}
+        </div>
+      )}
       {step === 1 && renderPaso1()}
       {step === 2 && renderPaso2()}
       {step === 3 && renderPaso3()}

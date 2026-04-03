@@ -32,6 +32,11 @@ export default function Historial() {
     navigate(`/evaluacion/${id}`);
   };
 
+  const handleVerRespuestas = (id) => {
+    setCurrentResumen(id);
+    navigate(`/evaluacion/${id}?view=respuestas`);
+  };
+
   const handleEliminar = async (id, nombre) => {
     if (confirm(`Eliminar "${nombre}"?`)) {
       const ok = await deleteEvaluacion(id);
@@ -122,6 +127,13 @@ export default function Historial() {
                 </div>
                 <div className="eval-card-actions">
                   <button className="btn btn-secondary" onClick={() => handleVerResumen(ev.id)}>Ver</button>
+                  <button 
+                    className="btn btn-ghost" 
+                    style={{ borderColor: 'var(--accent2)', color: 'var(--accent2)', padding: '7px 14px', fontSize: '0.75rem' }}
+                    onClick={() => handleVerRespuestas(ev.id)}
+                  >
+                    Respuestas
+                  </button>
                   <button className="btn btn-danger" onClick={() => handleEliminar(ev.id, ev.nombre)}>Eliminar</button>
                 </div>
               </div>
