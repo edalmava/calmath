@@ -29,15 +29,15 @@ function SettingsModal({ isOpen, onClose }) {
 
   const handleSave = async () => {
     const notaAprob = localSettings.notaAprobacion;
-    if (isNaN(notaAprob) || notaAprob < 0 || notaAprob > 10) {
-      setToast({ message: 'Nota de aprobación debe estar entre 0 y 10', isError: true });
-      return;
+    if (isNaN(notaAprob) || notaAprob < 0 || notaAprob > localSettings.notaMaxima) {
+      setToast({ message: `Nota de aprobación debe estar entre 0 y ${localSettings.notaMaxima}`, isError: true });
+      return; 
     }
     
     // Construir sistemaCalif correctamente: "1a10" o "0a10"
-    const inicio = localSettings.sistemaCalif; // "1" o "0"
+    const inicio = localSettings.sistemaCalif.startsWith('0') ? '0' : '1';
     const sistemaCalif = `${inicio}a${localSettings.notaMaxima}`;
-    
+
     setSistemaCalif(sistemaCalif);
     setAppSettings({ 
       sistemaCalif: sistemaCalif,
@@ -140,7 +140,7 @@ function Header() {
     <>
       <header>
         <div className="logo">EvalMath</div>
-        <div className="header-sub">Gestor de Evaluaciones ICFES - Cualquier area</div>
+        <div className="header-sub">Gestor de Evaluaciones ICFES</div>
         <div className="header-actions">
           <button className={`btn-ghost ${currentView === 'nueva' ? 'active-nav' : ''}`} onClick={goToNueva}>+ Nueva</button>
           <button className={`btn-ghost ${currentView === 'historial' ? 'active-nav' : ''}`} onClick={goToHistorial}>Historial</button>
