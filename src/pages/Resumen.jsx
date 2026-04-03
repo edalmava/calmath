@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../stores/useAppStore';
-import { parseSistemaCalif } from '../utils/calification';
+import { parseSistemaCalif, calcNota } from '../utils/calification';
 import { jsPDF } from 'jspdf';
 
 export default function Resumen() {
@@ -9,6 +9,8 @@ export default function Resumen() {
   const navigate = useNavigate();
   const { getEvaluacion, setToast } = useAppStore();
   const [evaluacion, setEvaluacion] = useState(null);
+  const [detalleModalOpen, setDetalleModalOpen] = useState(false);
+  const [detalleIdx, setDetalleIdx] = useState(0);
 
   useEffect(() => {
     const load = async () => {
@@ -114,6 +116,34 @@ export default function Resumen() {
     setToast({ message: 'CSV exportado' });
   };
 
+  const getDetalleEstudiante = (idx) => {
+    const ev = evaluacion;
+    const resp = ev.estudiantesRespuestas[idx] || [];
+    const clave = ev.claveRespuestas;
+    const nombre = ev.estudiantesNombres[idx] || '';
+    const evCalif = ev.sistemaCalif || '1a5';
+    const { notaMaxima, notaMinima } = parseSistemaCalif(evCalif);
+    const defaultPeso = (notaMaxima - notaMinima) / ev.numP;
+    const pesos = ev.pesosPreguntas || new Array(ev.numP).fill(defaultPeso);
+    
+    const aciertos = resp.filter((r, i) => r === clave[i]).length;
+    const errores = ev.numP - aciertos;
+    const pct = ev.numP > 0 ? ((aciertos / ev.numP) * 100).toFixed(0) : 0;
+    const nota = calcNota(resp, clave, pesos, evCalif);
+    const notaAprueba = ev.notaAprobacion || 3;
+    const aprobado = nota >= notaAprueba;
+    
+    return { nombre, resp, clave, aciertos, errores, pct, nota, aprobado, pesos };
+  };
+
+  const handlePrevEstudiante = () => {
+    if (detalleIdx > 0) setDetalleIdx(detalleIdx - 1);
+  };
+
+  const handleNextEstudiante = () => {
+    if (detalleIdx < evaluacion.numE - 1) setDetalleIdx(detalleIdx + 1);
+  };
+
   return (
     <main>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
@@ -154,7 +184,7 @@ export default function Resumen() {
         <table className="rsm-table">
           <thead>
             <tr>
-              <th>#</th><th>Estudiante</th><th>Aciertos</th><th>Errores</th><th>Nota</th><th>Estado</th>
+              <th>#</th><th>Estudiante</th><th>Aciertos</th><th>Errores</th><th>Nota</th><th>Estado</th><th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -172,12 +202,99 @@ export default function Resumen() {
                       {aprobado ? 'Aprobado' : 'Reprobado'}
                     </span>
                   </td>
+                  <td>
+                    <button 
+                      className="btn btn-ghost" 
+                      style={{ padding: '4px 8px', fontSize: '0.7rem' }}
+                      onClick={() => { setDetalleIdx(i); setDetalleModalOpen(true); }}
+                    >
+                      Respuestas
+                    </button>
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
+
+      {detalleModalOpen && (() => {
+        const detalle = getDetalleEstudiante(detalleIdx);
+        return (
+          <div className="modal-det-bg" onClick={() => setDetalleModalOpen(false)}>
+            <div className="modal-det" onClick={e => e.stopPropagation()}>
+              <div className="modal-det-header">
+                <div className="modal-det-header-info">
+                  <div className="modal-det-name">
+                    <button 
+                      className="btn btn-ghost" 
+                      onClick={handlePrevEstudiante}
+                      disabled={detalleIdx === 0}
+                      style={{ padding: '4px 8px', marginRight: '8px', opacity: detalleIdx === 0 ? 0.3 : 1 }}
+                    >
+                      ◀
+                    </button>
+                    {detalle.nombre}
+                    <button 
+                      className="btn btn-ghost" 
+                      onClick={handleNextEstudiante}
+                      disabled={detalleIdx === evaluacion.numE - 1}
+                      style={{ padding: '4px 8px', marginLeft: '8px', opacity: detalleIdx === evaluacion.numE - 1 ? 0.3 : 1 }}
+                    >
+                      ▶
+                    </button>
+                  </div>
+                  <div className="modal-det-meta">
+                    <span>Aciertos: <strong style={{ color: 'var(--green)' }}>{detalle.aciertos}</strong></span>
+                    <span>Errores: <strong style={{ color: 'var(--red)' }}>{detalle.errores}</strong></span>
+                    <span>{detalle.pct}% de acierto</span>
+                    <span>Preguntas: {evaluacion.numP}</span>
+                  </div>
+                </div>
+                <div className="modal-det-nota">
+                  <div className="modal-det-nota-val" style={{ color: detalle.aprobado ? 'var(--green)' : 'var(--red)' }}>
+                    {detalle.nota.toFixed(1)}
+                  </div>
+                  <div className="result-bar-wrap" style={{ width: '80px', margin: '8px auto 4px' }}>
+                    <div className="result-bar" style={{ width: `${detalle.pct}%`, background: detalle.aprobado ? 'var(--green)' : 'var(--red)' }}></div>
+                  </div>
+                  <div className="modal-det-nota-sub">{detalle.aprobado ? 'Aprobó' : 'Reprobó'}</div>
+                </div>
+              </div>
+              <div className="modal-det-body">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '8px' }}>
+                  {detalle.resp.map((r, i) => {
+                    const c = detalle.clave[i];
+                    const ok = r === c;
+                    return (
+                      <div key={i} className={`resp-item ${ok ? 'resp-ok' : 'resp-err'}`}>
+                        <div className="resp-item-num">Pregunta {i + 1}</div>
+                        <div className="resp-item-opts">
+                          {['A', 'B', 'C', 'D'].map(o => {
+                            let cls = 'resp-pip';
+                            if (o === r && o === c) cls += ' pip-correct';
+                            else if (o === r && o !== c) cls += ' pip-wrong';
+                            else if (o === c) cls += ' pip-show';
+                            return <div key={o} className={cls}>{o}</div>;
+                          })}
+                        </div>
+                        {evaluacion.pesoMode === 'diferente' && (
+                          <span style={{ color: 'var(--muted)', float: 'right', fontSize: '0.62rem' }}>
+                            {detalle.pesos[i].toFixed(3)} pts
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="modal-det-close">
+                <button className="btn btn-ghost" onClick={() => setDetalleModalOpen(false)}>Cerrar</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </main>
   );
 }

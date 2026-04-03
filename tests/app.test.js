@@ -1,3 +1,8 @@
+/**
+ * @deprecated Tests for the legacy vanilla JS version (src/app/).
+ * These tests reference deprecated code that is no longer used in the React version.
+ * Kept for historical reference only. Status: 34 passing with DOM-related warnings.
+ */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { parseSistemaCalif, pesoTotal, notaMinima, notaMaxima, calcNota, calcAciertos } from '../src/app/calification.js';
 import { getState, setState, resetState } from '../src/app/state.js';

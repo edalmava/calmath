@@ -1,3 +1,8 @@
+/**
+ * @deprecated Tests for the legacy vanilla JS version (src/app/).
+ * These tests reference deprecated code that is no longer used in the React version.
+ * Kept for historical reference only.
+ */
 import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('IndexedDB Helpers', () => {
